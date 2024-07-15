@@ -49,7 +49,9 @@ class Payment(models.Model):
 # Weird
 class PaymentMethod(models.Model):
     payment = models.ForeignKey(Payment, models.CASCADE)
-    methodPayment = {1: "QR", 2: "CREDIT"}
+    QR = 1
+    CREDIT = 2
+    methodPayment = {QR: "QR", CREDIT: "CREDIT"}
     method = models.IntegerField(choices=methodPayment)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     
@@ -61,4 +63,3 @@ class PaymentItem(models.Model):
     order_item = models.OneToOneField(OrderItem, models.CASCADE)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    

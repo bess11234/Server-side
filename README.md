@@ -211,3 +211,18 @@ True
 >>> timezone.is_naive(dt1)
 False
 ```
+
+```python
+>>> import datetime as dt
+>>> dt.datetime.now() # สร้าง datetime ปัจจุบัน ที่ไม่มี timezone (Naive)
+datetime.datetime(2024, 7, 15, 15, 21, 14, 597128)
+
+>>> from django.utils import timezone
+>>> timezone.localtime(dt.datetime.now()) # Error เพราะ localtime ใช้กับ Aware datetime
+>>> timezone.make_aware(dt.datetime.now())
+datetime.datetime(2024, 7, 15, 15, 22, 23, 461282, tzinfo=zoneinfo.ZoneInfo(key='Asia/Bangkok'))
+
+>>> week500 = datenow + dt.timedelta(days=500)
+>>> week500.weekday() # weekday() จะได้ 0-6 แทน Monday-Friday
+3
+```
