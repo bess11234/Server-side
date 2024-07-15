@@ -103,7 +103,8 @@ print(<คำสั่งที่เรียกข้อมูล>.query)
 
 ถ้าเพิ่ม Template แล้วเข้าไปไม่ได้ให้รัน python manage.py runserver ใหม่
 
-# **Importance**
+# Week 3
+## **Importance**
 เมื่อมีการใช้งาน ForeignKey Field อย่างเช่น
 ```bash
 created_by_id = models.ForeignKey(Author, on_delete=models.PROTECT)
@@ -133,4 +134,80 @@ models.DecimalField(..., max_digits=19, decimal_places=10)
 # 999999999.9999999999 ประมาณคือใส่ได้เยอะสุดเกือบ 1 พันล้าน
 ```
 
-# Week 3
+on_delete=
+```bash
+models.PROTECT
+# เมื่อฝั่ง Foregin key จะถูกลบจะเกิดการป้องกันไม่ให้ฝั่งแม่ถูกลบได้ เพราะยังมีลูกอยู่
+models.SET_NULL
+# เมื่อฝั่ง Foregin key จะถูกลบจะใส่ค่า Null ให้
+models.CASCADE
+# เมื่อฝั่ง Foregin key จะถูกลบลูกทั้งหมดก็ถูกลบด้วย
+models.DO_NOTHING
+# เมื่อฝั่ง Foregin key จะถูกลบจะไม่มีการเปลี่ยนแปลงเกิดขึ้น
+```
+
+## Datetime
+```python
+import datetime as dt
+>>> dt1 = dt.datetime(2024, 1, 12, 10, 30, 0)
+>>> dt2 = dt.datetime.now()
+>>> dt2-dt1
+datetime.timedelta(days=185, seconds=12471, microseconds=779630)
+```
+
+```python
+>>> dt1 + dt.timedelta(days=30) 
+datetime.datetime(2024, 2, 11, 10, 30)
+```
+- **Naive datetime objects** หมายถึง datetime object ที่ไม่มีการกำหนดข้อมูล time zone (tzinfo เป็น None)
+- **Aware datetime objects** คือ datetime object ทีมีข้อมูล time zone
+
+```python
+>>> from zoneinfo import ZoneInfo
+dt2 = dt.datetime(2015, 12, 21, 12, 0, tzinfo = ZoneInfo(key='Asia/Bangkok'))
+>>> print(dt2)
+2015-12-21 12:00:00+07:00
+
+>>> print("Naive Object :", dt1.tzname())
+Naive Object : None
+>>> print("Aware Object :", dt2.tzname())
+Aware Object : +07
+```
+
+ใน settings.py
+```python
+TIME_ZONE = 'Asia/Bangkok'
+
+USE_TZ=True
+```
+ช่วยให้ Convert เป็น UTC+0
+
+เมื่อต้องการให้เวลาเป็นไปตาม TIME_ZONE ที่ได้ตั้งใน settings.py
+timezone.localtime ทำให้จาก Aware เป็น Timezone ที่ตั้งไว้
+timezone.make_aware ทำให้จาก Naive เป็น Aware ตาม Timezone ที่ตั้งไว้
+```python
+>>> from django.utils import timezone
+>>> dt1 = datetime(2015, 12, 21, 12, 0, tzinfo=ZoneInfo(key='UTC')) 
+>>> print(dt1)
+2015-12-21 12:00:00+00:00
+>>> dt1_local = timezone.localtime(dt1)
+>>> print(dt1_local)
+2015-12-21 19:00:00+07:00
+
+>>> dt2 = datetime(2015, 5, 21, 12, 0) 
+>>> print(dt2)
+2015-12-21 12:00:00
+>>> dt2_aware = timezone.make_aware(dt2)
+>>> print(dt2_aware)
+2015-05-21 12:00:00+07:00
+```
+
+เรื่อง Aware, Naive คือเมื่อเวลานั้นกำหนด Timezone จะเป็น Aware ถ้าไม่คือ Naive
+Naive ไม่ดีเพราะเราจะไม่รู้เลยว่าเวลาที่ได้มาเป็นเวลาจาก Timezone ไหน
+```python
+>>> from django.utils import timezone
+>>> timezone.is_aware(dt1)
+True
+>>> timezone.is_naive(dt1)
+False
+```
