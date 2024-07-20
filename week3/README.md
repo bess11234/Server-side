@@ -307,8 +307,8 @@ Running migrations:
 - UUIDField(**options)
 - TextField(**options)
 - DateField(auto_now=False, auto_now_add=False, **options)
-    - auto_now = True คือจะบันทึกค่า datetime.now() ทุกครั้งที่มีการแก้ไขค่า (INSERT + UPDATE)
-    - auto_now_add = True คือจะบันทึกค่า datetime.now() ตอนที่สร้างใหม่ (INSERT)
+    - auto_now = True คือจะบันทึกค่า datetime.now() ทุกครั้งที่มีการแก้ไขค่า ***(INSERT + UPDATE)***
+    - auto_now_add = True คือจะบันทึกค่า datetime.now() ตอนที่สร้างใหม่ ***(INSERT)***
 - DateTimeField(auto_now=False, auto_now_add=False, **options)
 - TimeField(auto_now=False, auto_now_add=False, **options)
 - FileField(upload_to='', storage=None, max_length=100, **options)
@@ -363,4 +363,4 @@ class Student(models.Model):
     def is_upperclass(self):
         return self.year_in_school in {self.JUNIOR, self.SENIOR}
 ```
-- db_index: ถ้ามีค่าเป็น True คือจะสร้าง index ใน database สำหรับ column นี้
+- db_index: ถ้ามีค่าเป็น True คือจะสร้าง index ใน database สำหรับ column นี้ `ใช้เมื่อมีการใช้ Column นี้ในการ Search และ Sort บ่อย ๆ`

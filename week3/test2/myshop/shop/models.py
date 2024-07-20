@@ -66,4 +66,3 @@ class PaymentItem(models.Model):
     order_item = models.OneToOneField(OrderItem, models.CASCADE)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    
