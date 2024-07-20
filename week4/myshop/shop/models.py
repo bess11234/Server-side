@@ -55,7 +55,6 @@ class PaymentMethod(models.Model):
     CREDIT = 2
     methodPayment = {QR: "QR", CREDIT: "CREDIT"}
     method = models.IntegerField(choices=methodPayment)
-    
     price = models.DecimalField(max_digits=10, decimal_places=2)
     
     def getMethod(self):

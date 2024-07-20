@@ -103,7 +103,8 @@ print(<คำสั่งที่เรียกข้อมูล>.query)
 
 ถ้าเพิ่ม Template แล้วเข้าไปไม่ได้ให้รัน python manage.py runserver ใหม่
 
-# **Importance**
+# Week 3
+## **Importance**
 เมื่อมีการใช้งาน ForeignKey Field อย่างเช่น
 ```bash
 created_by_id = models.ForeignKey(Author, on_delete=models.PROTECT)
@@ -133,4 +134,145 @@ models.DecimalField(..., max_digits=19, decimal_places=10)
 # 999999999.9999999999 ประมาณคือใส่ได้เยอะสุดเกือบ 1 พันล้าน
 ```
 
-# Week 3
+# Week 4
+
+## Insert Data
+วิธีสร้าง row หรือเพิ่มข้อมูลเข้าไปใน Table
+```python
+from blog.models import Blog, Author, Entry
+b = Blog(name="Beatles Blog", tagline="All the latest Beatles news.")
+b.save()
+```
+อีกโดยวิธีนี้ไม่ต้อง
+`save()` ก็จะเพิ่มข้อมูลเข้าไปใน Database ทันที
+```python
+b = Blog.objects.create(name="Beatles Blog", tagline="All the latest Beatles news.")
+```
+
+ในความสัมพันธ์ ManyToMany ให้ใช้ `add()` กับ Table ที่สร้างขึ้นมาโดยสามารถเพิ่มได้ในหลายข้อมูลพร้อมกัน เพิ่มข้อมูลเข้าไปใน Database ทันที
+```python
+john = Author.objects.create(name="John")
+paul = Author.objects.create(name="Paul")
+george = Author.objects.create(name="George")
+ringo = Author.objects.create(name="Ringo")
+entry.authors.add(john, paul, george, ringo)
+```
+
+## Select Data
+ข้อมูลที่จะได้มาจะเป็น Instance ของ Class **QuerySet**
+
+```Python
+Entry.objects.all() # SELECT * FROM entry;
+```
+
+```python
+Entry.objects.filter(pub_date__year=2010) # SELECT * FROM entry WHERE pub_date=2010;
+```
+
+สามารถใช้ Lookup __type ตามด้วยความหมายที่ต้องการดึง
+```python
+__exact=""|0|None # field="", field=0, field is NULL
+__iexact=""|0|None # เหมือนกับ exact แต่เป็น case-insensitive ILIKE "" | ILIKE 0 | IS NULL
+__contains="K" # LIKE %K%
+__icontains="K" # ILIKE %K% เป็น case-insensitive
+__startswith="K" # LIKE K%
+__istartswith="K" # ILIKE K%
+__endswith="K" # LIKE %K
+__iendswith="K" # ILIKE %K
+__in = [1, 2, 3]|"abc" # IN (1, 2, 3) | IN ("a", "b", "c")
+__gte=1 # >= 1
+__gt=1 # > 1
+__lte=1 # <= 1
+__te=1 # < 1
+__range=(1, 2)|(date, date) # BETWEEN data AND date
+__date=datetime # หมายความว่าที่ใส่ไปคือ type date || __date__gt || __date__gte ใช้ น้อยกว่า มากกว่า เพิ่มเติมได้
+__year=2005 # แปลงเป็น BETWEEN '2005-01-01' AND '2005-12-31'
+__year__gt=2005 # แปลงเป็น > "2005-01-01"
+<field>__avg
+<field>__count
+<field>__max
+<field>__min
+<field>__sum
+<field>__isnull=True
+```
+```python
+Entry.objects.filter(headline__startswith="What").exclude(
+    pub_date__gte=datetime.date.today()
+).filter(pub_date__gte=datetime.date(2005, 1, 30))
+```
+`values(field1, field2, ..)` สามารถนำมาใช้กับการดึงข้อมูลแค่ Column ที่ต้องการได้
+```python
+>>> a = Author.objects.all().values("name")
+<QuerySet [{'name': 'John'}, {'name': 'Joe'}, {'name': 'Paul'}, {'name': 'George'}, {'name': 'Ringo'}, {'name': 'John2'}, {'name': 'Test'}, {'name': 'Test'}]>
+```
+สามารถเอาไปประยุกต์กับการใช้ Lookup ได้ด้วยการ
+```python
+authors = Entry.objects.filter(pk=1).values("authors")
+for i in Author.objects.filter(id__in=authors):
+    print(i)
+```
+
+เลือกข้อมูลจากใน Table สามารถกำหนดเงื่อนไขผ่าน arguments ที่ Model มี
+`<Table>.objects.get(column1="", column2="", ...)`
+```python
+entry = Entry.objects.get(pk=1)
+cheese_blog = Blog.objects.get(name="Cheddar Talk")
+```
+
+### ข้อแตกต่างของ `get()` กับ `filter()`
+
+- get() สามารถดึงข้อมูลเพียงแค่ตัวเดียว แล้วสามารถใช้ข้อมูลได้เลย แต่นั้นก็ทำให้ต้อง ***กำหนดเงื่อนไขให้ได้แค่ข้อมูลเดียว***
+- filter() สามารถดึงข้อมูลได้ >= 1 ตัว แต่ต้องเข้าไปในแต่ละตัวเพื่อใช้งาน โดยจะได้เป็น `QuerySet`
+
+```python
+one_entry = Entry.objects.get(pk=1)
+one_entry = Entry.objects.filter(pk=1).first()
+one_entry = Entry.objects.filter(pk=1)[0]
+# ทั้ง 3 บรรทัดนี้ให้ผลเหมือนกัน
+```
+
+### Limit ข้อมูลที่ต้องการ Query
+การทำ Query อย่าง `SELECT * FROM table LIMIT 5` เพื่อประหยัดเวลาในการประมวลผลดึงข้อมูล
+
+```python
+Entry.objects.all()[:5] # LIMIT 5
+Entry.objects.all()[5:11] # OFFSET 5 LIMIT 5
+Entry.objects.all()[1:5] # OFFSET 1 LIMIT 4
+Entry.objects.all()[:-1] # ! ERROR ValueError: Negative indexing is not supported.
+```
+
+### Compare ข้อมูล
+เช็คข้อมูลว่าเป็นตัวเดียวกันหรือป่าวใช้ `==`
+
+```python
+author_1 = Author.objects.get(pk=1)
+author_j = Author.objects.get(name="John")
+author_1 == author_j # True
+author_1.id == author_j.id # True
+```
+
+### Delete ข้อมูล
+ลบข้อมูลออกจาก Database จากการใช้ `delete()`
+
+```python
+Author.objects.filter(name__startswith="T").delete() # ลบ Author ที่มีชื่อขึ้นต้นด้วย T
+>>> (2, {'blog.Author': 2})
+Author.objects.get(name="John").delete() # ลบ Author ที่ชื่อว่า John
+>>> (1, {'blog.Author': 1})
+Author.objects.all().delete() # ลบข้อมูลทั้งหมดใน Author
+>>> (10, {'blog.Author': 10})
+```
+
+### Copy ข้อมูล
+
+คัดลอกข้อมูลที่มีรายละเอียดเหมือนกัน โดยจะทำการลบ pk แล้วให้ใช้ `_state_adding = True` เป็นการเพิ่ม pk ใหม่อัตโนมัติ ต้องมีการ `save()` ด้วยเพื่อเพิ่มข้อมูลลงไป
+```python
+test = Author.objects.create(name="Test") # Author.objects.get(pk=1) || Author.objects.get(name="John")
+test.pk = None
+test._state_adding = True
+test.save()
+```
+
+### Raw (query) ข้อมูล
+
+การเขียน SQL Query ที่ต้องการโดยไม่ใช้ API จาก Django
