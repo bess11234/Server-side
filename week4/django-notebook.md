@@ -33,11 +33,15 @@
     pip install ipython==8.25.0 jupyter_server==2.14.1 jupyterlab==4.2.2 jupyterlab_server==2.27.2
     ```
 
-    แก้ไข version notebook
+    MAC แก้ไข version notebook
     ```sh
     pip install notebook==6.5.6
     ```
-    หากติดตั้ง หรือ run jupyter ไม่ได้ให้ลองเปลี่ยน notebook version ดังนี้ `6.5.7`
+
+    WINDOW แก้ไข version notebook
+    ```sh
+    pip install notebook==6.5.7
+    ```
 
 5. จากนั้นสร้าง directory ชื่อ `notebooks`
 
@@ -85,6 +89,10 @@
     ```
 
     ![create_ipynb](/images/first.png)
+
+10a. ต้องมีการ Change kernel เป็น Django Shell-Plus
+
+![create_ipynb](./images/image.png)
 
 
 11. สามารถทำการ import models และ query ข้อมูลโดยใช้ API ของ Django ได้เลย
