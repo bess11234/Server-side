@@ -107,7 +107,7 @@ Blog.objects.filter(entry__authors__name__isnull=True)
 
 ## Complex lookups with Q objects
 
-Keyword argument ที่ส่งเข้าไปใน method `filter()` ทุกตัวจะถูกเอามา generate เป็น `SELECT ... WHERE ... AND ...` เสมอ เช่น 
+Keyword argument ที่ส่งเข้าไปใน method `filter()` ทุกตัวจะถูกเอามาgenerate เป็น `SELECT ... WHERE ... AND ...` เสมอ เช่น 
 
 ```sql
 -- Entry.objects.filter(headline__contains='Lennon', pub_date__year=2005)
@@ -135,7 +135,7 @@ Entry.objects.filter(Q(headline__startswith="Who") | ~Q(pub_date__year=2005))
 ```python
 Poll.objects.get(
     Q(question__startswith="Who"),
-    Q(pub_date=date(2005, 5, 2)) | Q(pub_date=date(2005, 5, 6)),
+    (Q(pub_date=date(2005, 5, 2)) | Q(pub_date=date(2005, 5, 6))),
 )
 ```
 
