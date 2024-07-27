@@ -156,6 +156,9 @@ paul = Author.objects.create(name="Paul")
 george = Author.objects.create(name="George")
 ringo = Author.objects.create(name="Ringo")
 entry.authors.add(john, paul, george, ringo)
+
+entry.authors.remove(john, paul, george, ringo) # เป็นการลบข้อมูลออกจาก Table ManaToMany
+entry.authors.clear() # ลบทุกความสัมพันธ์ออกจาก Entry ใน Authors ที่เป็น Table ManaToMany
 ```
 
 ## Select Data
@@ -163,6 +166,8 @@ entry.authors.add(john, paul, george, ringo)
 
 ```Python
 Entry.objects.all() # SELECT * FROM entry;
+
+Table.objects.filter().dictinct() # จะได้แบบ Unique Row
 ```
 
 ```python
@@ -276,3 +281,89 @@ test.save()
 ### Raw (query) ข้อมูล
 
 การเขียน SQL Query ที่ต้องการโดยไม่ใช้ API จาก Django
+
+### One to One Field Retrive Data
+
+การดึงข้อมูลจากการใช้ความสัมพันธ์แบบ OneToOne ยกตัวอย่าง Order และ Payment มีความสัมพันธ์แบบ OneToOne โดยมีข้อมูลโครงสร้างดังนี้
+
+```python
+class Order(models.Model):
+    customer = models.ForeignKey(Customer, models.CASCADE)
+    order_date = models.DateField(auto_now_add=True)
+    remark = models.TextField(null=True)
+    orderItem = models.ManyToManyField(Product, through='shop.OrderItem')
+
+class Payment(models.Model):
+    order = models.OneToOneField(Order, models.CASCADE)
+    payment_date = models.DateField(auto_now_add=True)
+    remark = models.TextField(null=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    discount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+```
+
+จะเห็นว่า Payment มี field order อยู่ทำให้เวลาเรามี object ของ Payment เราจะสามารถดึงข้อมูลจาก Order ที่เชื่อมได้เลยอย่าง
+
+```python
+payment = Payment.objects.get(pk=1)
+payment.order.order_date # Payment นี้ให้ดึงว่า Order เวลาไหน
+
+order = Order.objects.get(pk=1)
+order.payment.price # Order นี้ให้ดึงว่า payment ราคาเท่าไร
+```
+
+### Many to Many Field Retrive Data
+
+การดึงข้อมูลโดยมีความสัมพันธ์แบบ ManyToMany จะแตกต่างกันโดยจะได้ข้อมูลมา
+```python
+class Order(models.Model):
+    customer = models.ForeignKey(Customer, models.CASCADE)
+    order_date = models.DateField(auto_now_add=True)
+    remark = models.TextField(null=True)
+    orderItem = models.ManyToManyField(Product, through='shop.OrderItem')
+
+class OrderItem(models.Model):
+    order = models.ForeignKey(Order, models.CASCADE)
+    product = models.ForeignKey(Product, models.CASCADE)
+    amount = models.IntegerField(default=1)
+```
+
+เราสามารถดึงข้อมูล OrderItem ผ่าน Order ได้เลยโดยวิธีดึงให้ใช้
+```python
+order = Order.objects.get(pk=1)
+order.orderItem.all() # ดึงข้อมูล orderItem ทั้งหมด และจะสามารถดึงข้อมูลจาก field ที่ต้องการได้
+```
+
+ในกรณีที่อยากได้ amount ใน OrderItem ให้
+```python
+order = Order.objects.filter(order_date__month=5)[:10]
+for i in order:
+    for j in i.orderitem_set.all():
+        print(j.amount, j.product.name, j.product.price)
+```
+
+**! ระวัง**
+* `order.OrderItem.all()` อันนี้ดึงข้อมูลจาก Field ใน Order ที่ลิงค์ไปหา Product ทันทีเพราะงั้นคำสั่งนี้จะได้แค่ Product
+* `order.orderitem_set.all()` อันนี้ดึงข้อมูลผ่าน Table OrderItem ทำให้ได้ Field ทั้งหมดใน OrderItem และดึงข้อมูล amount ได้
+
+### Playground
+
+เมื่อต้องการ filter ข้อมูลที่เป็น field แบบ ManyToMany สามารถใช้ __ แล้วตามด้วย field ของ Table ที่เชื่อมเช่น
+```python
+class ProductCategory(models.Model):
+    name = models.CharField(max_length=150)
+    
+class Product(models.Model):
+    name = models.CharField(max_length=150)
+    description = models.TextField(null=True)
+    remaining_amount = models.IntegerField(default=0)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    categories = models.ManyToManyField(ProductCategory)
+```
+
+เราต้องการได้ Product แต่งื่อนไขคือต้องเป็นประเภท "Technologies" ซึ่งต้องดึงข้อมูลจาก categories ที่เป็น name มาโดยสามารถใช้
+```python
+product = Product.objects.filter(categories__name="Technologies") # ดึงข้อมูลสินค้าที่มีประเภท "Technologies"
+```
+ก็จะได้ข้อมูลที่ต้องการมา
+
+## ! IMPORTANT `dir(<object>)` เพื่อ Function และ Attribute ของ Object มาดู

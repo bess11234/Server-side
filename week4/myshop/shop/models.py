@@ -10,6 +10,9 @@ class Customer(models.Model):
 class ProductCategory(models.Model):
     name = models.CharField(max_length=150)
     
+    def __str__(self):
+        return self.name
+    
 class Product(models.Model):
     name = models.CharField(max_length=150)
     description = models.TextField(null=True)

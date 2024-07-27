@@ -43,7 +43,7 @@
     pip install notebook==6.5.7
     ```
 
-5. จากนั้นสร้าง directory ชื่อ `notebooks`
+5. จากนั้นสร้าง directory ชื่อ `notebooks` ใน project directory
 
     ```sh
     mkdir notebooks
