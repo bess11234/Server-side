@@ -384,6 +384,11 @@ product = Product.objects.filter(categories__name="Technologies") # ดึงข
 
 
 # Week 5
+```python
+pip install <library> <library> ...
+```
+
+aggregate เหมือนการทำ `Group by` ที่ได้ผลลัพธ์ตามข้อมูลใน Column
 
 จะเรียนเกี่ยวกับ Expressions ที่ใช้ได้จาก django.db.models และ built-in ของ Django
 ```python
