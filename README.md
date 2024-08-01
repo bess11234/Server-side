@@ -367,3 +367,10 @@ product = Product.objects.filter(categories__name="Technologies") # ดึงข
 ก็จะได้ข้อมูลที่ต้องการมา
 
 ## ! IMPORTANT `dir(<object>)` เพื่อ Function และ Attribute ของ Object มาดู
+
+# Week 5
+```python
+pip install <library> <library> ...
+```
+
+aggregate เหมือนการทำ Group by ที่ได้ผลลัพธ์ตามข้อมูลใน Column
