@@ -149,7 +149,7 @@ b.save()
 b = Blog.objects.create(name="Beatles Blog", tagline="All the latest Beatles news.")
 ```
 
-ในความสัมพันธ์ ManyToMany ให้ใช้ `add()` กับ Table ที่สร้างขึ้นมาโดยสามารถเพิ่มได้ในหลายข้อมูลพร้อมกัน เพิ่มข้อมูลเข้าไปใน Database ทันที
+### ManyToMany ให้ใช้ `add()` กับ Table ที่สร้างขึ้นมาโดยสามารถเพิ่มได้ในหลายข้อมูลพร้อมกัน เพิ่มข้อมูลเข้าไปใน Database ทันที
 ```python
 john = Author.objects.create(name="John")
 paul = Author.objects.create(name="Paul")
@@ -157,8 +157,8 @@ george = Author.objects.create(name="George")
 ringo = Author.objects.create(name="Ringo")
 entry.authors.add(john, paul, george, ringo)
 
-entry.authors.remove(john, paul, george, ringo) # เป็นการลบข้อมูลออกจาก Table ManaToMany
-entry.authors.clear() # ลบทุกความสัมพันธ์ออกจาก Entry ใน Authors ที่เป็น Table ManaToMany
+# Opposite
+john.entry_set.add(e1, e2, e3) # สามารถใช้ Author ก่อนได้ แต่ต้องระบุเป็น Table_set.add(<object_Table>)
 ```
 
 ## Select Data
@@ -268,6 +268,12 @@ Author.objects.all().delete() # ลบข้อมูลทั้งหมดใ
 >>> (10, {'blog.Author': 10})
 ```
 
+**ManyToMany** ถ้าต้องการลบ หรือล้างข้อมูลการเชื่อมกัน
+```python
+entry.authors.remove(john, paul, george, ringo) # เป็นการลบข้อมูลออกจาก Table ManaToMany
+entry.authors.clear() # ลบทุกความสัมพันธ์ออกจาก Entry ใน Authors ที่เป็น Table ManaToMany
+```
+
 ### Copy ข้อมูล
 
 คัดลอกข้อมูลที่มีรายละเอียดเหมือนกัน โดยจะทำการลบ pk แล้วให้ใช้ `_state_adding = True` เป็นการเพิ่ม pk ใหม่อัตโนมัติ ต้องมีการ `save()` ด้วยเพื่อเพิ่มข้อมูลลงไป
@@ -282,7 +288,7 @@ test.save()
 
 การเขียน SQL Query ที่ต้องการโดยไม่ใช้ API จาก Django
 
-### One to One Field Retrive Data
+## One to One Field Retrive Data
 
 การดึงข้อมูลจากการใช้ความสัมพันธ์แบบ OneToOne ยกตัวอย่าง Order และ Payment มีความสัมพันธ์แบบ OneToOne โดยมีข้อมูลโครงสร้างดังนี้
 
@@ -311,7 +317,7 @@ order = Order.objects.get(pk=1)
 order.payment.price # Order นี้ให้ดึงว่า payment ราคาเท่าไร
 ```
 
-### Many to Many Field Retrive Data
+## Many to Many Field Retrive Data
 
 การดึงข้อมูลโดยมีความสัมพันธ์แบบ ManyToMany จะแตกต่างกันโดยจะได้ข้อมูลมา
 ```python
@@ -345,6 +351,13 @@ for i in order:
 * `order.OrderItem.all()` อันนี้ดึงข้อมูลจาก Field ใน Order ที่ลิงค์ไปหา Product ทันทีเพราะงั้นคำสั่งนี้จะได้แค่ Product
 * `order.orderitem_set.all()` อันนี้ดึงข้อมูลผ่าน Table OrderItem ทำให้ได้ Field ทั้งหมดใน OrderItem และดึงข้อมูล amount ได้
 
+## One to One/Many Field Retrive Data
+การดึงข้อมูลจาก Table ที่มี Foreign Key สามารถทำได้โดย
+```python
+<Parent>.objects.filter(<Child>__<Field_Child>)
+<Child>.objects.filter(<Field_ForeignkeyParent>__<Field_Parent>)
+```
+
 ### Playground
 
 เมื่อต้องการ filter ข้อมูลที่เป็น field แบบ ManyToMany สามารถใช้ __ แล้วตามด้วย field ของ Table ที่เชื่อมเช่น
@@ -366,4 +379,208 @@ product = Product.objects.filter(categories__name="Technologies") # ดึงข
 ```
 ก็จะได้ข้อมูลที่ต้องการมา
 
-## ! IMPORTANT `dir(<object>)` เพื่อ Function และ Attribute ของ Object มาดู
+## IMPORTANT 
+`dir(<object>)` เพื่อ Function และ Attribute ของ Object มาดู
+
+
+# Week 5
+
+จะเรียนเกี่ยวกับ Expressions ที่ใช้ได้จาก django.db.models และ built-in ของ Django
+```python
+from django.db.models import Count, F, Value
+from django.db.models.functions import Length, Upper
+from django.db.models.lookups import GreaterThan
+```
+## Functions F()
+
+ฟังชั่น F ใช้เมื่อต้องการคำนวณโดยใช้ข้อมูล Field ใน Table
+```python
+Company.objects.filter(num_employees__gt=F("num_chairs"))
+
+Company.objects.filter(num_employees__gt=F("num_chairs")).annotate(chairs_needed=F("num_employees") - F("num_chairs")).first()
+```
+
+`annotate()` ใช้เมื่อต้องการคำนวณข้อมูลเพิ่มเติม โดยการกำหนดชื่อ Field และข้อมูลที่ต้องการ เมื่อจะเข้าถึงข้อมูลให้ทำเหมือนเป็น Attribute อีกตัว
+
+## Functions Upper(), Value()
+
+* `Value()` กำหนดว่าหมายถึงอันนี้เป็น ค่าจริง ๆ ไม่ใช่ส่ง Field ให้
+* `<object>.refresh_from_db()` ดึงข้อมูลจาก Database จาก Object ที่เรียก
+```python
+# 1
+company = Company.objects.create(name="Google", ticker=Upper(Value("goog")), num_employees=100, num_tables=100, num_chairs=200)
+company.ticker
+# Upper(Value("goog"))
+
+company.refresh_from_db()
+company.ticker
+# 'GOOG'
+
+# 2
+company = Company.objects.create(name="Google", ticker="goog".upper(), num_employees=100, num_tables=100, num_chairs=200)
+company.ticker
+# 'GOOG'
+
+# Error
+company = Company.objects.create(name="Google", ticker=Upper("goog"), num_employees=100, num_tables=100, num_chairs=200)
+```
+
+## Function Length()
+
+ฟังชั่นที่ดึงข้อมูลจาก Field มาดูว่ามีความยาวเท่าไร หรือก็คือแปลงข้อมูลของ Field ที่ใส่เข้าไปเป็นความยาว
+```python
+Length("<field>")
+```
+
+ตัวอย่าง
+```python
+Company.objects.order_by(Length("name").asc())
+# <QuerySet [<Company: Google>, <Company: Google2>, <Company: Company AAA>, <Company: Company BBB>, <Company: Company CCC>]>
+
+Company.objects.order_by(Length("name").desc())
+# <QuerySet [<Company: Company AAA>, <Company: Company BBB>, <Company: Company CCC>, <Company: Google2>, <Company: Google>]>
+```
+
+## Function GreaterThan()
+ฟังชั่นที่ใช้เปรียบค่าระหว่าง Argument1 กับ Argument2
+```python
+Company.objects.filter(GreaterThan( F("num_employees"), F("num_chairs") )) # num_employees > num_chairs
+# ให้ข้อมูลที่ num_employeees > num_chairs
+
+Company.objects.annotate(needed_chairs=GreaterThan(F("num_employees"), F ("num_chairs") ))
+# ให้ข้อมูลทั้งหมด แต่ทุกข้อมูลที่ได้มาจะมี Field needed_chairs ที่เป็น Boolean โดยถ้าเป็น True คือ num_employeees > num_chairs
+```
+
+## Function Avg()
+ฟังชั่นในการคำนวณค่าเฉลี่ยของ Field ที่ใส่เข้าไป
+```python
+from django.db.models import Avg
+Book.objects.aggregate(Avg("price", default=0))
+# {'price__avg': Decimal('9.7018644067796610')}
+```
+
+## Function Max()
+ฟังชั่นในการหาค่าสูงสุดของ Field ที่ใส่เข้าไป
+```python
+from django.db.models import Max
+Book.objects.aggregate(Max("price", default=0))
+# {'price__max': Decimal('14.99')}
+```
+
+## Function Count()
+ฟังชั่นนับจำนวน Row ของ Table ที่ใส่เข้าไป โดยต้องเป็น แม่ของ Foreign Key
+```python
+from django.db.models import Count
+pubs = Publisher.objects.annotate(num_books=Count("book"))
+# <QuerySet [<Publisher: Publisher object (1)>, <Publisher: Publisher object (2)>]>
+pubs.first().num_books
+# 20
+```
+> Note: Book มี Foreign key ของ Publisher
+
+```python
+pubs = Publisher.objects.annotate(num_books=Count("book")).order_by("-num_books")[:5]
+pubs[0].num_books
+pubs[len(pubs)-1].num_books
+```
+
+> Note: `annotate()` เป็นการสร้าง Field เพิ่มขึ้นมา ทำให้สามารถใช้ `order_by(<field>)` ได้
+
+## Function Q()
+ทำให้สามารถดึงค่าข้อมูลเสมือนการทำ Select ใน Select
+
+```python
+above = Publisher.objects.annotate(above_4=Count("book", filter=Q(book__rating__gt=4)))
+below = Publisher.objects.annotate(below_4=Count("book", filter=Q(book__rating__lte=4)))
+```
+
+## Funtion values_list()
+เป็นฟังชั่นที่ดึงค่า field ออกมาตามที่ต้องการให้แสดง โดยจะให้มาเป็น List ของ QuerySet
+```python
+penguin_pub.book_set.filter(name__startswith="The").values_list("id", flat=True)
+# <QuerySet [1, 5, 8, 14, 17]>
+
+penguin_pub.book_set.filter(name__startswith="The").values_list("id")
+# <QuerySet [(1,), (5,), (8,), (14,), (17,)]>
+
+penguin_pub.book_set.filter(name__startswith="The").values_list("id", "name")
+# <QuerySet [(1, 'The Great Gatsby'), (5, 'The Catcher in the Rye'), (8, 'The Odyssey'), (14, 'The Hobbit'), (17, 'The Hitchhiker Guide to the Galaxy')]>
+```
+> Note: ถ้ามีการใส่ Field มากกว่า 1 จะไม่สามารถใช้ Argument flat=True ได้
+
+## IMPORTANT ตั้งค่า Database ให้แต่ละ App
+
+ถ้าต้องการให้ App แต่ละอันใช้ Database ต่างกันให้ใช้
+
+```python
+# setting.py
+DATABASES = {
+    'default': {},
+    'books': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'books',
+        'USER': 'postgres',
+        'PASSWORD': 'password',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    },
+    'companies': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'companies',
+        'USER': 'postgres',
+        'PASSWORD': 'password',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    }
+}
+
+DATABASE_ROUTERS = ['books.dbRouter.BookDBRouter', 'companies.dbRouter.CompanyDBRouter']
+```
+```python
+# <app>/dbRouter.py ยกตัวอย่างของ app books
+class BookDBRouter(object):
+    """
+    A router to control db operations
+    """
+    route_app_labels = {'books'}
+    db_name = 'books'
+
+    def db_for_read(self, model, **hints):
+        """
+        Attempts to read auth and contenttypes models go to self.db_name.
+        """
+        if model._meta.app_label in self.route_app_labels:
+            return self.db_name
+        return None
+
+    def db_for_write(self, model, **hints):
+        """
+        Attempts to write auth and contenttypes models go to self.db_name.
+        """
+        if model._meta.app_label in self.route_app_labels:
+            return self.db_name
+        return None
+
+    def allow_relation(self, obj1, obj2, **hints):
+        """
+        Allow relations if a model in the auth or contenttypes apps is
+        involved.
+        """
+        if (
+            obj1._meta.app_label in self.route_app_labels or
+            obj2._meta.app_label in self.route_app_labels
+        ):
+           return True
+        return None
+
+    def allow_migrate(self, db, app_label, model_name=None, **hints):
+        """
+        Make sure the auth and contenttypes apps only appear in the
+        self.db_name database.
+        """
+        if app_label in self.route_app_labels:
+            return db == self.db_name
+        return None
+```
+- `py manage.py makemigrations <app_name>`
+- `py manage.py migrate --database=<database_name>`
