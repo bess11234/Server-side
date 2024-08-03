@@ -33,17 +33,13 @@
     pip install ipython==8.25.0 jupyter_server==2.14.1 jupyterlab==4.2.2 jupyterlab_server==2.27.2
     ```
 
-    MAC แก้ไข version notebook
+    แก้ไข version notebook
     ```sh
     pip install notebook==6.5.6
     ```
+    หากติดตั้ง หรือ run jupyter ไม่ได้ให้ลองเปลี่ยน notebook version ดังนี้ `6.5.7`
 
-    WINDOW แก้ไข version notebook
-    ```sh
-    pip install notebook==6.5.7
-    ```
-
-5. จากนั้นสร้าง directory ชื่อ `notebooks` ใน project directory
+5. จากนั้นสร้าง directory ชื่อ `notebooks`
 
     ```sh
     mkdir notebooks
@@ -74,28 +70,24 @@
 ซึ่งจะเปิด Jupyter Notebook ขึ้นมาใน Web Browser
 
 8. เข้าไปที่ folder `notebooks`
+   
+    ![notebook_8](https://github.com/it-web-pro/django-week3/blob/main/images/notebook_8.png?raw=true)
+    
+    สร้าง ไฟล์ ipynb สำหรับใช้กับ project django
+   
+    [![create_ipynb](/images/create_ipynb.png)](https://github.com/it-web-pro/django-week3/blob/main/images/create_ipynb.png?raw=true)
 
-    ![notebook_8](/images/notebook_8.png)
-
-9. สร้าง ไฟล์ ipynb สำหรับใช้กับ project django
-
-    ![create_ipynb](/images/create_ipynb.png)
-
-10. จากนั้นใน Cell แรกของไฟล์ Notebook เพิ่ม code นี้ลงไป
+9. จากนั้นใน Cell แรกของไฟล์ Notebook เพิ่ม code นี้ลงไป
 
     ```python
     import os
     os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
     ```
-
-    ![create_ipynb](/images/first.png)
-
-10a. ต้องมีการ Change kernel เป็น Django Shell-Plus
-
-![create_ipynb](./images/image.png)
+    ![/images/first.png](https://github.com/it-web-pro/django-week3/blob/main/images/first.png?raw=true)
 
 
-11. สามารถทำการ import models และ query ข้อมูลโดยใช้ API ของ Django ได้เลย
+
+10. สามารถทำการ import models และ query ข้อมูลโดยใช้ API ของ Django ได้เลย
 
 ```python
 from blogs.models import Blog

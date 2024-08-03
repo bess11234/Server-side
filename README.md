@@ -32,8 +32,10 @@ Activate virtual environment
 source myvenv/bin/activate
 ```
 
+```bash
+django-admin startproject mysite
 ```
-> django-admin startproject mysite
+```python
 mysite/
     manage.py
     mysite/
@@ -43,6 +45,15 @@ mysite/
         asgi.py
         wsgi.py
 ```
+Run server
+```
+py manage.py runserver <port>
+```
+
+## Start app
+```bash
+py manage.py startapp <app>
+```
 ## คำสั่งในการเข้า Shell ใน Postgres
 ```sh
 psql -U postgres
@@ -50,12 +61,12 @@ psql -U postgres
 ## คำสั่งในการแก้ไข Database
 คำสั่งต้องทำคู่กันเมื่อมีการแก้ไข models.py
 ```bash
-python manage.py makemigrations
+python manage.py makemigrations <Optional app>
 ```
 ใช้เมื่อมีการแก้ไขไฟล์ models.py
 
 ```bash
-python manage.py migrate
+python manage.py migrate <Optional app> <Optional number of migrations>
 ```
 
 ใช้เพื่อให้ระบบนำไปอัพเดทข้อมูลในฐานข้อมูล ถ้ามีการแก้ไข Models
@@ -67,35 +78,35 @@ python manage.py migrate
 ```bash
 <Table>.objects.first()
 ```
-```bash
+```python
 <Table>.objects.get(pk=)
 # pk คือ ID
 ```
-```bash
+```python
 .save()
 # ใช้เมื่อต้องการบันทึกข้อมูลลงฐานข้อมูล
 ```
 
-```bash
+```python
 .<Table>_set.count()
 # ใช้เมื่อ Tables นั้นมีความสัมพันธ์ 1 -M โดย Table เป็น 1 (เช่น choice_set)
 ```
 ```bash
 <Table>.objects.filter(question_text__icontains="llo")
 ```
-```bash
+```python
 <Table>.objects.filter(question_text__startswith="What")
 # แสดงข้อมูลที่มีการกำหนดประโยคภายใน
 ```
-```bash
+```python
 <Table>.objects.filter(<Table>_id=1, ...)
 # แสดงข้อมูลตาม ID โดยมี _id โดยต้องมี Foreign Key
 ```
-```bash
+```python
 print(<คำสั่งที่เรียกข้อมูล>.query)
 # แสดง SQL Query ที่คำสั่งใช้ใน Database
 ```
-```bash
+```python
 <Table>.objects.all().delete()
 # ลบข้อมูลทั้งหมดใน Table
 ```
@@ -106,18 +117,18 @@ print(<คำสั่งที่เรียกข้อมูล>.query)
 # Week 3
 ## **Importance**
 เมื่อมีการใช้งาน ForeignKey Field อย่างเช่น
-```bash
+```python
 created_by_id = models.ForeignKey(Author, on_delete=models.PROTECT)
 # เมื่อ Migrate จะทำการสร้าง Column ที่มีชื่อตามตัวแปร + _id ต่อท้ายให้ทำให้เป็น
 # created_by_id_id
 ```
 
 เมื่อมีการใช้งาน ManyToMany Field อย่างเช่น
-```bash
+```python
 categories = models.ManyToManyField("blogs.Category")
-# จะสร้าง Table ที่่มีชื่อที่ขึ้นต้นด้วย Table ที่สร้าง Column นี้โดยอันนี้คือ blog ตามด้วย _<ตัวแปร>
+# จะสร้าง Table ที่่มีชื่อที่ขึ้นต้นด้วย Table ที่สร้าง Column นี้โดยอันนี้คือ blog ตามด้วย _<Field>
 # blog_categories
-# และจะสร้าง ForeignKey ที่มีชื่อของ ทั้ง Table ที่ใช้สร้าง Column นี้กับ Table ที่เชื่อมไปคือ blog กับ Category และทั้งสองจะมี _id ต่อท้าย
+# และจะสร้าง Foreign Key ที่มีชื่อของ ทั้ง Table ที่ใช้สร้าง Column นี้กับ Table ที่เชื่อมไปคือ blog กับ Category และทั้งสองจะมี _id ต่อท้าย
 # blog_id กับ category_id
 
 cartItem = models.ManyToManyField("shop.Product", through="CartItem")
@@ -125,13 +136,55 @@ cartItem = models.ManyToManyField("shop.Product", through="CartItem")
 ```
 
 เมื่อมีการใช้งาน Decimal Field อย่างเช่น
-```bash
+```python
 models.DecimalField(..., max_digits=5, decimal_places=2)
 # ตัวเลขที่ใส่ได้มากที่สุดคือ 999.99 มาจากการเอา max_digits - decimal_places = 3 ก็คือจะต้องใส่ 9 สามตัว และ decimal_places คือจะต้องใส่ 9 สองตัว หลัง . หรือก็คือมีทศนิยมได้ 2 ตำแหน่ง
 # 999.99
 
 models.DecimalField(..., max_digits=19, decimal_places=10)
 # 999999999.9999999999 ประมาณคือใส่ได้เยอะสุดเกือบ 1 พันล้าน
+```
+
+## Date/Datetime Field
+`models.DateField()`
+
+`models.DateTimeField()`
+### Arguments
+```python
+auto_now_add=True # เมื่อสร้าง Field นี้จะใส่เวลาปัจจุบันในอัตโนมัติ
+auto_now=True # เมื่อมีการเพิ่ม และอัพเดท Field นี้จะใส่เวลาปัจจุบัยในอัตโนมัติ
+```
+
+## Foreign Key
+```python
+models.CASCADE # เมื่อ Parent ถูกลบจะไปลบข้อมูล Child ที่มี ID ของ Parent อยู่
+models.PROTECT # เมื่อ Parent จะถูกลบจะปกป้องไม่ให้ถูกลบหาก Child ที่มี ID ของ Parent ยังอยู่
+```
+
+# Datetime
+```python
+import datetime as dt
+import zoneinfo as zi
+from django.utils import timezone
+
+dt.datetime.now() # ให้เวลาปัจจุบัน แต่ไม่มี Timezone: NAIVE
+timezone.now() # ให้เวลาปัจจุบัน ที่มี Timezone +0.00 UTC: AWARE
+
+timezone.make_aware(<datetime>) # ต้องเป็น naive ใส่ Timezone ให้เป็นตาม setting.py
+timezone.localtime(<datetime>) # ต้องเป็น aware ใส่ Timezone ให้เป็นตาม setting.py
+
+timezone.is_aware(<datetime>) # True ถ้ามี Timezone
+timezone.is_naive(<datetime>) # True ถ้าไม่มี Timezone
+zi.ZoneInfo(key="Asia/Bangkok")
+
+dt.timedelta(weeks=1, days=1, hours=1, minutes=1, seconds=1, milliseconds=1, microseconds=1) # สามารถเอาไป + กับ Datetime เพื่อเพิ่มเวลาได้
+
+<dt>.strftime("%a | %A") # บอกวัน
+<dt>.strftime("%b | %B") # บอกเดือน
+<dt>.strftime("%c | %C") # บอกวัน เดือน วันที่ วันเวลา ปี | บอกศตวรรษ
+<dt>.strftime("%d | %D") # บอกวันที่ | บอกวันเดือน/วันที่/ปี เป็นเลข
+<dt>.strftime("%y | %Y") # บอกปีแต่ไม่บอก ศตวรรษ | บอกปี
+<dt>.weekday() | <dt>.strftime("%w") # บอก 0-6 {0: Monday, .., 6: Sunday}
 ```
 
 # Week 4
@@ -388,8 +441,6 @@ product = Product.objects.filter(categories__name="Technologies") # ดึงข
 pip install <library> <library> ...
 ```
 
-aggregate เหมือนการทำ `Group by` ที่ได้ผลลัพธ์ตามข้อมูลใน Column
-
 จะเรียนเกี่ยวกับ Expressions ที่ใช้ได้จาก django.db.models และ built-in ของ Django
 ```python
 from django.db.models import Count, F, Value
@@ -589,3 +640,6 @@ class BookDBRouter(object):
 ```
 - `py manage.py makemigrations <app_name>`
 - `py manage.py migrate --database=<database_name>`
+
+
+`.aggregate` เหมือนการทำ `Group by` ที่ได้ผลลัพธ์ตามข้อมูลใน Column อยากให้ลองทำ Exercise ใหม่ดู ข้อที่นับ Categories

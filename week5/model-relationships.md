@@ -56,7 +56,7 @@ class Book(models.Model):
 >>> penguin_pub = Publisher.objects.get(name="Penguin Books")
 
 # Get all books published by "Penguin Books"
->>> penguin_pub.book_set.all()
+>>> books = penguin_pub.book_set.all()
 <QuerySet [<Book: Book object (2)>, <Book: Book object (3)>, <Book: Book object (4)>, <Book: Book object (5)>, <Book: Book object (6)>, <Book: Book object (7)>, <Book: Book object (8)>, <Book: Book object (9)>, <Book: Book object (10)>, <Book: Book object (11)>, <Book: Book object (12)>, <Book: Book object (13)>, <Book: Book object (14)>, <Book: Book object (15)>, <Book: Book object (16)>, <Book: Book object (17)>, <Book: Book object (18)>, <Book: Book object (19)>, <Book: Book object (20)>, <Book: Book object (21)>, '...(remaining elements truncated)...']>
 
 # How may books?
@@ -74,6 +74,10 @@ class Book(models.Model):
 # Get only ids
 >>> penguin_pub.book_set.filter(name__startswith="The").values_list("id", flat=True)
 <QuerySet [2, 6, 9, 15, 18]>
+
+# Get id and name
+>>> penguin_pub.book_set.filter(name__startswith="The").values("id", "name")
+<QuerySet [{'id': 2, 'name': 'The Great Gatsby'}, {'id': 6, 'name': 'The Catcher in the Rye'}, {'id': 9, 'name': 'The Odyssey'}, {'id': 15, 'name': 'The Hobbit'}, {'id': 18, 'name': 'The Hitchhiker Guide to the Galaxy'}]>
 ```
 
 สมมติว่าเราต้องการต้นหาจากทางฝั่ง book บ้าง ถ้าเราต้องหนังสือที่ rating >= 4.5 และ published โดยสำนักพิมพ์ "Oxford University Press"

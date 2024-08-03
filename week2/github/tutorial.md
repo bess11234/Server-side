@@ -421,13 +421,13 @@ What's new?
 <QuerySet [<Choice: Yes>, <Choice: No>, <Choice: OK>]>
 
 >>> Choice.objects.filter(question_id=1, choice_text="Yes")
-<QuerySet [<Choice: Yes>, <Choice: No>, <Choice: OK>]>
+<QuerySet [<Choice: Yes>]>
 
 >>> Question.objects.first()
 <Question: What is up?>
 
 >>> Question.objects.last()
-<Question: What is up?>
+<Question: Hello world?>
 ```
 
 เราจะมาสร้าง view กันต่อ ตามขั้นตอนในไฟล์ `tutorial-view.md`
