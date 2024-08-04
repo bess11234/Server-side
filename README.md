@@ -1,6 +1,7 @@
 https://github.com/it-web-pro/django-week2
 # รหัส: password
 
+
 # Week 2
 ## WINDOW Install virtualenv
 ```bash
@@ -113,6 +114,24 @@ print(<คำสั่งที่เรียกข้อมูล>.query)
 `{% <command> %}` command เป็นโค้ด Python
 
 ถ้าเพิ่ม Template แล้วเข้าไปไม่ได้ให้รัน python manage.py runserver ใหม่
+
+## Add django-extensions for notebook .ipynb
+```bash
+pip install django-extensions ipython jupyter notebook
+```
+แก้ไขเวอร์ชั่น MAC
+```bash
+pip install ipython==8.25.0 jupyter_server==2.14.1 jupyterlab==4.2.2 jupyterlab_server==2.27.2 notebook==6.5.6
+```
+แก้ไขเวอร์ชั่น WINDOW
+```bash
+pip install ipython==8.25.0 jupyter_server==2.14.1 jupyterlab==4.2.2 jupyterlab_server==2.27.2 notebook==6.5.7
+```
+ใน setting.py ต้องทำการเพิ่ม `django_extensions` เป็นส่วนหนึ่งของตัวแปร INSTALLED_ADDS ด้วย
+```python
+py manage.py shell_plus --notebook # ทำการเปิด Shell ผ่าน Notebook
+```
+และที่สำคัญคือต้องเลือก Run Script เป็น `Django Shell-Plus` ด้วย
 
 # Week 3
 ## **Importance**
