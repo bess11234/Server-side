@@ -437,6 +437,9 @@ product = Product.objects.filter(categories__name="Technologies") # ดึงข
 
 
 # Week 5
+[Django Doc: query-expressions](https://docs.djangoproject.com/en/5.0/ref/models/expressions/#query-expressions)
+
+
 ```python
 pip install <library> <library> ...
 ```
@@ -447,6 +450,7 @@ from django.db.models import Count, F, Value
 from django.db.models.functions import Length, Upper
 from django.db.models.lookups import GreaterThan
 ```
+
 ## Functions F()
 
 ฟังชั่น F ใช้เมื่อต้องการคำนวณโดยใช้ข้อมูล Field ใน Table
@@ -563,6 +567,17 @@ penguin_pub.book_set.filter(name__startswith="The").values_list("id", "name")
 # <QuerySet [(1, 'The Great Gatsby'), (5, 'The Catcher in the Rye'), (8, 'The Odyssey'), (14, 'The Hobbit'), (17, 'The Hitchhiker Guide to the Galaxy')]>
 ```
 > Note: ถ้ามีการใส่ Field มากกว่า 1 จะไม่สามารถใช้ Argument flat=True ได้
+
+## Function values()
+ฟังชั่นแปลงค่า Object ที่ดึงข้อมูลทั้งหมดมาเป็น JSON
+
+## Function annotate() กับ values() เพื่อทำการ Group by
+เราสามารถทำการนับค่าทั้งหมดโดยแบ่งแยกประเภท หรือข้อมูลที่มีค่าเหมือนกันใน Field ใด Field หนึ่งได้จากการใช้ Annotate และ Values
+```python
+Product.objects.filter(categories__name__in=("Clothing and Apparel", "Furniture"), price__range=(1000, 10000)).
+values("categories__name").annotate(count=Count("categories"))
+# โดยจะเห็นว่าเป็นการแยกประเภทของ สินค้า ผ่านชื่อของประเภทสินค้า และค่อยนับไปใส่ใน Field count
+```
 
 ## IMPORTANT ตั้งค่า Database ให้แต่ละ App
 
