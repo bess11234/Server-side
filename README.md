@@ -279,8 +279,8 @@ Entry.objects.filter(headline__startswith="What").exclude(
 ```
 `values(field1, field2, ..)` สามารถนำมาใช้กับการดึงข้อมูลแค่ Column ที่ต้องการได้
 ```python
->>> a = Author.objects.all().values("name")
-<QuerySet [{'name': 'John'}, {'name': 'Joe'}, {'name': 'Paul'}, {'name': 'George'}, {'name': 'Ringo'}, {'name': 'John2'}, {'name': 'Test'}, {'name': 'Test'}]>
+Author.objects.all().values("name")
+# <QuerySet [{'name': 'John'}, {'name': 'Joe'}, {'name': 'Paul'}, {'name': 'George'}, {'name': 'Ringo'}, {'name': 'John2'}, {'name': 'Test'}, {'name': 'Test'}]>
 ```
 สามารถเอาไปประยุกต์กับการใช้ Lookup ได้ด้วยการ
 ```python
