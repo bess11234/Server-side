@@ -260,7 +260,7 @@ __in = [1, 2, 3]|"abc" # IN (1, 2, 3) | IN ("a", "b", "c")
 __gte=1 # >= 1
 __gt=1 # > 1
 __lte=1 # <= 1
-__te=1 # < 1
+__lt=1 # < 1
 __range=(1, 2)|(date, date) # BETWEEN data AND date
 __date=datetime # หมายความว่าที่ใส่ไปคือ type date || __date__gt || __date__gte ใช้ น้อยกว่า มากกว่า เพิ่มเติมได้
 __year=2005 # แปลงเป็น BETWEEN '2005-01-01' AND '2005-12-31'
