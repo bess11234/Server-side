@@ -81,6 +81,7 @@ python manage.py migrate <Optional app> <Optional number of migrations>
 ```
 ```python
 <Table>.objects.get(pk=)
+<Table>.objects.get(id=)
 # pk คือ ID
 ```
 ```python
@@ -90,7 +91,7 @@ python manage.py migrate <Optional app> <Optional number of migrations>
 
 ```python
 .<Table>_set.count()
-# ใช้เมื่อ Tables นั้นมีความสัมพันธ์ 1 -M โดย Table เป็น 1 (เช่น choice_set)
+# ใช้เมื่อ Tables นั้นมีความสัมพันธ์ 1-M โดย Table เป็น 1 (เช่น choice_set)
 ```
 ```bash
 <Table>.objects.filter(question_text__icontains="llo")
@@ -100,7 +101,7 @@ python manage.py migrate <Optional app> <Optional number of migrations>
 # แสดงข้อมูลที่มีการกำหนดประโยคภายใน
 ```
 ```python
-<Table>.objects.filter(<Table>_id=1, ...)
+<Table>.objects.filter(<Table_FK>_id=1, ...)
 # แสดงข้อมูลตาม ID โดยมี _id โดยต้องมี Foreign Key
 ```
 ```python
@@ -141,6 +142,7 @@ created_by_id = models.ForeignKey(Author, on_delete=models.PROTECT)
 # เมื่อ Migrate จะทำการสร้าง Column ที่มีชื่อตามตัวแปร + _id ต่อท้ายให้ทำให้เป็น
 # created_by_id_id
 ```
+> **Note:** models.ForeignKey จะทำการเพิ่ม _id ต่อหลัง Field
 
 เมื่อมีการใช้งาน ManyToMany Field อย่างเช่น
 ```python
@@ -171,7 +173,7 @@ models.DecimalField(..., max_digits=19, decimal_places=10)
 ### Arguments
 ```python
 auto_now_add=True # เมื่อสร้าง Field นี้จะใส่เวลาปัจจุบันในอัตโนมัติ
-auto_now=True # เมื่อมีการเพิ่ม และอัพเดท Field นี้จะใส่เวลาปัจจุบัยในอัตโนมัติ
+auto_now=True # เมื่อมีการเพิ่ม และอัพเดท Field นี้จะใส่เวลาปัจจุบันในอัตโนมัติ
 ```
 
 ## Foreign Key
@@ -333,11 +335,11 @@ author_1.id == author_j.id # True
 
 ```python
 Author.objects.filter(name__startswith="T").delete() # ลบ Author ที่มีชื่อขึ้นต้นด้วย T
->>> (2, {'blog.Author': 2})
+# (2, {'blog.Author': 2})
 Author.objects.get(name="John").delete() # ลบ Author ที่ชื่อว่า John
->>> (1, {'blog.Author': 1})
+# (1, {'blog.Author': 1})
 Author.objects.all().delete() # ลบข้อมูลทั้งหมดใน Author
->>> (10, {'blog.Author': 10})
+# (10, {'blog.Author': 10})
 ```
 
 **ManyToMany** ถ้าต้องการลบ หรือล้างข้อมูลการเชื่อมกัน
@@ -555,7 +557,7 @@ pubs = Publisher.objects.annotate(num_books=Count("book"))
 pubs.first().num_books
 # 20
 ```
-> Note: Book มี Foreign key ของ Publisher
+> **Note:** Book มี Foreign key ของ Publisher
 
 ```python
 pubs = Publisher.objects.annotate(num_books=Count("book")).order_by("-num_books")[:5]
@@ -563,7 +565,7 @@ pubs[0].num_books
 pubs[len(pubs)-1].num_books
 ```
 
-> Note: `annotate()` เป็นการสร้าง Field เพิ่มขึ้นมา ทำให้สามารถใช้ `order_by(<field>)` ได้
+> **Note:** `annotate()` เป็นการสร้าง Field เพิ่มขึ้นมา ทำให้สามารถใช้ `order_by(<field>)` ได้
 
 ## Function Q()
 ทำให้สามารถดึงค่าข้อมูลเสมือนการทำ Select ใน Select
@@ -585,7 +587,7 @@ penguin_pub.book_set.filter(name__startswith="The").values_list("id")
 penguin_pub.book_set.filter(name__startswith="The").values_list("id", "name")
 # <QuerySet [(1, 'The Great Gatsby'), (5, 'The Catcher in the Rye'), (8, 'The Odyssey'), (14, 'The Hobbit'), (17, 'The Hitchhiker Guide to the Galaxy')]>
 ```
-> Note: ถ้ามีการใส่ Field มากกว่า 1 จะไม่สามารถใช้ Argument flat=True ได้
+> **Note:** ถ้ามีการใส่ Field มากกว่า 1 จะไม่สามารถใช้ Argument flat=True ได้
 
 ## Function values()
 ฟังชั่นแปลงค่า Object ที่ดึงข้อมูลทั้งหมดมาเป็น JSON
