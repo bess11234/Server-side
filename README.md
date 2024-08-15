@@ -808,6 +808,16 @@ def test2(x, y):
 test2(1, 2)
 # 1 2
 ```
+## Best Practice
+`ควรใส่ urls.py ในแต่ละ app แล้วค่อยไป include ที่ urls.py ที่ตัวหลัก`
+```python
+# main-app/urls.py
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('employee/', include("employee.urls"))
+]
+```
+
 ## Import app
 ![PNG](./images/week7-1.png)
 
