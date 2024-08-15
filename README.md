@@ -679,3 +679,98 @@ class BookDBRouter(object):
 
 
 `.aggregate` เหมือนการทำ `Group by` ที่ได้ผลลัพธ์ตามข้อมูลใน Column อยากให้ลองทำ Exercise ใหม่ดู ข้อที่นับ Categories
+
+# Week 6
+ดูใน Folder week 6
+
+# Week 7
+## Show database in postgres
+```bash
+\l
+```
+
+## Escaping characters
+```
+< is converted to &lt;
+> is converted to &gt;
+' is converted to '
+" is converted to "
+& is converted to &amp;
+```
+
+[Doc variable in templates](https://docs.djangoproject.com/en/5.0/ref/templates/language/)
+## Function in {{}} (Templates)
+```python
+value|length # ได้รับความยาว หรือขนาดกลับมา
+{# command #} # เพื่อคอมเมนต์
+include <file.html> # คล้ายกับ PHP
+value|safe # ทำให้ตัวอักษรไม่แปลงค่า (No auto-escaping)
+
+# Date
+value|date # ทำให้เป็น Date
+value|date:'c' # ทำให้แสดงเป็นแบบ YYYY:MM:DD เป็นเลข
+value|date:"Y-m-d" # แสดงเป็น YYYY-MM-DD เป็นเลข
+
+value|add:"string" # ต่อ String
+value|add:second
+value.function # เมื่อ Value นั้น ๆ มี Function ไม่ต้องใส่ ()
+csrf_token # ให้ Token ที่ใส่ใน CSRF
+```
+```
+This will be escaped: {{ data }} | This will be escaped: &lt;b&gt;
+This will not be escaped: {{ data|safe }} | This will not be escaped: <b>
+```
+
+[Doc {% %}](https://docs.djangoproject.com/en/3.2/ref/templates/builtins/#json-script)
+## Function in {%%} (Templates)
+```python
+for i in value | for i in range(start=0, end, step=1)
+endfor
+
+if elif else
+endif
+
+url '<nameofPath>' <optional-argument> <optional-argument> <optional-argument> ..
+```
+
+[Doc Request](https://docs.djangoproject.com/en/5.0/ref/request-response/)
+## Request | HttpRequest
+```python
+request.scheme # แสดงว่าเป็น http|https
+request.body # ข้อมูลที่ส่งผ่าน Method
+request.path # แสดง Path ที่ถูกติดต่อ (urls.py)
+request.content_type # แสดง Type ของ Content (ex. application/json)
+request.GET # เมื่อ Method เป็น Get สามารถใช้อย่างงี้เพื่อใช้ .get("<argument>")
+request.POST # เมื่อ Method เป็น Post สามารถใช้อย่างงี้เพื่อใช้ .get("<argument>")
+request.method # แสดง method
+request.COOKIES # แสดง cookies
+request.META # แสดงข้อมูลของข้อมูล Request
+request.headers # แสดงข้อมูล headers สามารถใช้ get ได้
+request.get_host() # ได้ Address:port ของ Request
+request.get_port() # ได้ Port ของ Request
+```
+
+## Convert bytes to JSON
+```python
+# views.py
+content = request.body.decode("utf-8") # ได้ข้อมูลจาก body เป็น bytes เลยต้องทำการ Decode
+content_json = json.loads(content) # แปลงข้อมูลเป็น json
+employee_id = content_json['emp_id']
+```
+```python
+# templates/*.py
+fetch(`/employees/projects/{{ project.id }}/addStaff/`, {
+    method: 'PUT',
+    headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}' // มี
+    },
+    body: JSON.stringify(data) # อันนี้คือข้อมูลที่ Request ส่งมา
+})
+.then(response => response.json())
+.then(data => {
+    console.log('Item updated successfully')
+    window.location.reload()
+})
+.catch(error => console.error('Error:', error));
+```
