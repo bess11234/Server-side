@@ -808,3 +808,8 @@ def test2(x, y):
 test2(1, 2)
 # 1 2
 ```
+## Import app
+![PNG](./images/week7-1.png)
+
+## Undefine type
+![PNG](./images/week7-2ไม่บอกType.png)
