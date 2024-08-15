@@ -756,9 +756,13 @@ request.get_port() # ได้ Port ของ Request
 content = request.body.decode("utf-8") # ได้ข้อมูลจาก body เป็น bytes เลยต้องทำการ Decode
 content_json = json.loads(content) # แปลงข้อมูลเป็น json
 employee_id = content_json['emp_id']
+# or
+content_json = json.loads(request.body) # แปลงข้อมูลเป็น json
+employee_id = content_json['emp_id']
 ```
 ```python
 # templates/*.py
+const data = {'emp_id': emp_id}
 fetch(`/employees/projects/{{ project.id }}/addStaff/`, {
     method: 'PUT',
     headers: {
@@ -773,4 +777,34 @@ fetch(`/employees/projects/{{ project.id }}/addStaff/`, {
     window.location.reload()
 })
 .catch(error => console.error('Error:', error));
+```
+
+## JsonResponse
+เมื่อ Template ต้องการให้ตอบกลับเป็น JSON
+```python
+# views.py
+JsonResponse({'foo':'bar'}, status=200)
+# or
+HttpResponse("\"{'status':'0'}\"")
+```
+```python
+# templates/*.py
+...
+.then(response => response.json())
+...
+```
+
+## Decorator
+```python
+def hook(func):
+    def test(x, y):
+        print(x, y)
+    return test
+
+@hook
+def test2(x, y):
+    return (x, y)
+
+test2(1, 2)
+# 1 2
 ```
