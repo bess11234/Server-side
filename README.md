@@ -699,7 +699,7 @@ class BookDBRouter(object):
 ```
 
 [Doc variable in templates](https://docs.djangoproject.com/en/5.0/ref/templates/language/)
-## Function in {{}} (Templates)
+## Filter (Template) 1
 ```python
 value|length # ได้รับความยาว หรือขนาดกลับมา
 {# command #} # เพื่อคอมเมนต์
@@ -823,3 +823,171 @@ urlpatterns = [
 
 ## Undefine type
 ![PNG](./images/week7-2ไม่บอกType.png)
+
+
+# Week 8
+
+## Static
+```py
+# main/settings.py
+INSTALLED_APPS = [ "django.contrib.staticfiles" ]
+...
+STATICFILES_DIRS = [ BASE_DIR / 'static' ]
+
+# main/templates/*.html
+{% load static %}
+{% static 'FILE PATH IN STATIC FOLDER' %}
+```
+
+## Block
+ใน `<name>.html` แบ่งโครงสร้างเว็บเป็น 3 ส่วนซึ่งช่วยในการจัดหน้าเว็บให้ง่ายขึ้นโดย
+1. title
+2. sidebar
+3. content
+
+หรือจะไม่เหมือนกันก็ได้ โดยจะใส่ตามใน `<name>.html`
+```py
+# <name>.html
+<!DOCTYPE html>
+<html>
+    <body>
+    <h1>Welcome</h1>
+
+    {% block title %}
+        <h2>Title</h2>
+    {% endblock %}
+
+    {% block sidebar %}
+        <h2>Sidebar<h2>
+    {% endblock %}
+
+    {% block content %}
+        <h2>Content<h2>
+    {% endblock %}
+
+    <p>
+        Check out the two templates to see what they look like, and views.py to see the reference to the child template.
+    </p>
+
+    </body>
+</html>
+
+# other.html
+{% extends "<name>.html" %}
+{% block title %} content {% endblock %}
+{% block sidebar %} content {% endblock %}
+{% block content %} content {% endblock %}
+```
+> **Note:** หากไม่ได้กำหนด Block ที่กำหนด จะเอาข้อมูลใน `<name>.html` ไปใส่
+
+## Escape
+### Block-level
+```python
+{% autoescape off/on %} {% endautoescape %}
+```
+### Filter-level
+```py
+value|safe
+value|escape
+'{{ value|escapejs }}' # สำหรับการใช้กับ Javascript String ใน '' หรือ ""
+```
+
+## Forloop (Template)
+[Doc](https://docs.djangoproject.com/en/5.1/ref/templates/builtins/#for)
+```py
+{% cycle 'row1' rowvalue 'row2' %} # จะทำการลูปเริ่มตั้งแต่ตัวแรก จนถึงตัวท้าย แล้วเริ่มที่ตัวแรกใหม่ ใช้ใน {% for %}
+{% for %} {% empty %} {% endfor %} # empty ใช้กับ for หาก for ไม่ลูปจะแสดงข้อมูลที่ empty
+{% ifchanged %} # Check ว่าข้อมูลมีการเปลี่ยนแปลงจากการลูปครั้งก่อนไหม
+```
+### Variable
+| Variable              | Description                                                    |
+| --------------------- | -------------------------------------------------------------- |
+| `forloop.counter`     | The current iteration of the loop (1-indexed)                  |
+| `forloop.counter0`    | The current iteration of the loop (0-indexed)                  |
+| `forloop.revcounter`  | The number of iterations from the end of the loop (1-indexed)  |
+| `forloop.revcounter0` | The number of iterations from the end of the loop (0-indexed)  |
+| `forloop.first`       | True if this is the first time through the loop                |
+| `forloop.last`        | True if this is the last time through the loop                 |
+| `forloop.parentloop`  | For nested loops, this is the loop surrounding the current one |
+
+## Filter (Template) 2
+[Doc](https://docs.djangoproject.com/en/5.1/ref/templates/builtins/#std-templatefilter-escape)
+```py
+value|join:'<string>'
+value|filesizeforma # บอก Size ของ value เป็น Format ที่อ่านรู้เรื่อง (13 KB, 4.1 MB, 102 bytes)
+value|first # return first item in list
+value|last
+value|floatformat:N # N ให้บอกทศนิยม Default=1 ถ้าเป็น Int Default=0 N=[-inf, inf]
+value|floatformat:"Ng" # จะมีการแยกจุดพันให้ ex.3,400 โดย N ยังกำหนดเหมือนเดิม
+value|get_digit:"N" # n=2; value is 123456789, the output will be 8
+value|lower
+value|title # "asdf As e" = "Asdf As E"
+value|capfirst
+value|ljust:"N" # กำหนด Space ถ้าไม่ถึงจะเว้นระยะไปทางซ้าย
+value|rjust:"N" # กำหนด Space ถ้าไม่ถึงจะเว้นระยะไปทางขวา
+value|center:"N" # ทำให้ String อยู่ตรงกลางตามตัวอักษรที่กำหนด
+value|slice:':N' # n=2; value=['a', 'b', 'c'], the output will be ['a', 'b']
+value|truncatechars:N # กำหนดจำนวนอักษรที่จะแสดง และถ้าเกินที่เหลือจะเป็น ... เช่น Joel i…
+value|make_list # value="Joel", output=['J', 'o', 'e', 'l']
+value|pluralize # value >= 2 จะได้ s กลับมา เหมาะกับการทำ 1 day, 2 days
+value|random # value=[1,2,3,4] random มา 1 ตัว
+value|wordcount # value="Joel is a slug", the output will be 4.
+value|cut:"<String>" # string=" "; value="String with spaces", the output will be "Stringwithspaces".
+value|default:"<String>" # value==False display <string>
+value|default_if_none:"<String>" # value==None display <string>
+value|dictsort:"<Attribute>" # value=dict Attribute=attribute in dict
+```
+
+### Date format (Filter)
+[Date format](https://docs.djangoproject.com/en/5.1/ref/templates/builtins/#date)
+| Format character	| Description |Example output |
+| ----------------- | ----------- | --------------| 
+| Day               |
+| d                 | Day of the month, 2 digits with leading zeros.	|'01' to '31'
+| j                 |  Day of the month without leading zeros.	|'1' to '31'
+| D                 |  Day of the week, textual, 3 letters.	|'Fri'
+| l                 |  Day of the week, textual, long.	|'Friday'
+| S                 |  English ordinal suffix for day of the month, 2 characters.	|'st', 'nd', 'rd' or 'th'
+| w                 |  Day of the week, digits without leading zeros.	|'0' (Sunday) to '6' (Saturday)
+| z                 |  Day of the year.	|1 to 366
+| Week	 	 
+| W                 |  ISO-8601 week number of year, with weeks starting on Monday.	| 1, 53
+| Month	 	 
+| m                 |  Month, 2 digits with leading zeros.|	'01' to '12'
+| n                 |  Month without leading zeros.	|'1' to '12'
+| M                 |  Month, textual, 3 letters.	|'Jan'
+| b                 |  Month, textual, 3 letters, lowercase.	|'jan'
+| E                 |  Month, locale specific alternative representation usually used for long date representation.|	'listopada' (for Polish locale, as opposed to 'Listopad')
+| F                 |  Month, textual, long.|	'January'
+| N                 |  Month abbreviation in Associated Press style. Proprietary extension.	|'Jan.', 'Feb.', 'March', 'May'
+| t                 |  Number of days in the given month.	|28 to 31
+| Year	 	 
+| y                 | Year, 2 digits with leading zeros.	|'00' to '99'
+| Y                 | Year, 4 digits with leading zeros.	|'0001', …, '1999', …, '9999'
+| L                 | Boolean for whether it’s a leap year.	|True or False
+| o                 | ISO-8601 week-numbering year, corresponding to the ISO-8601 week number (W) which uses leap weeks. See Y for the more common year format.|	'1999'
+| Time	 	 
+| g                 |  Hour, 12-hour format without leading zeros. |	'1' to '12'
+| G                 |  Hour, 24-hour format without leading zeros.	|'0' to '23'
+| h                 |  Hour, 12-hour format.	|'01' to '12'
+| H                 |  Hour, 24-hour format.	|'00' to '23'
+| i                 |  Minutes.	|'00' to '59'
+| s                 |  Seconds, 2 digits with leading zeros.	|'00' to '59'
+| u                 |  Microseconds.	|000000 to 999999
+| a                 |  'a.m.' or 'p.m.' (Note that this is slightly different than PHP’s output, because this includes periods to match Associated Press style.)	|'a.m.'
+| A                 |  'AM' or 'PM'.	|'AM'
+| f                 |  Time, in 12-hour hours and minutes, with minutes left off if they’re zero. Proprietary extension.	|'1', '1:30'
+| P                 |  Time, in 12-hour hours, minutes and ‘a.m.’/’p.m.’, with minutes left off if they’re zero and the special-case strings ‘midnight’ and ‘noon’ if appropriate. Proprietary extension.	'1 a.m.', '1:30 p.m.', 'midnight', 'noon', '12:30 p.m.'
+| Time zone	 	 
+| e                 |  Timezone name. Could be in any format, or might return an empty string, depending on the datetime.	| '', 'GMT', '-500', 'US/Eastern', etc.
+| I                   Daylight saving time, whether it’s in effect or not.	|'1' or '0'
+| O                 |  Difference to Greenwich time in hours.	|'+0200'
+| T                 |  Time zone of this machine.	|'EST', 'MDT'
+| Z                 |  Time zone offset in seconds. The offset for timezones west of UTC is always negative, and for those east of UTC is always positive.	| -43200 to 43200
+| Date/Time	 	 
+| c                 |  ISO 8601 format. (Note: unlike other formatters, such as “Z”, “O” or “r”, the “c” formatter will not add timezone offset if value is a naive datetime (see datetime.tzinfo).	| 2008-01-02T10:30:00.000123+02:00, or 2008-01-02T10:30:00.000123 if the datetime is naive
+| r                 |  RFC 5322 formatted date. |	'Thu, 21 Dec 2000 16:01:07 +0200'
+| U                 |  Seconds since the Unix Epoch | (January 1 1970 00:00:00 UTC).	 
+
+## Tips
+หากแก้ไข Javascript ที่อยู่ใน Static แล้วไม่ Update ให้ใช้ `Ctrl+F5` เพื่อรีเซ็ต Cookies

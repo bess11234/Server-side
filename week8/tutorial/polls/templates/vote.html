@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <link rel="stylesheet" href="{% static 'css/bulma.css' %}" />
+  </head>
+  <body>
+    <section class="section">
+      <h1 class="title">Question: {{ question.question_text }}</h1>
+      <p class="subhead">Publish date: {{ question.pub_date|date:'D j, M y' }} ({{ question.pub_date|timesince }})</p>
+      <div class="p-3">
+        <form action="{% url 'vote' question.id %}" method="post">
+          {% csrf_token %}
+          <div class="field">
+            {% for choice in choices %}
+              <div class="control">
+                <label class="radio" for="choice{{ forloop.counter }}">
+                  <input type="radio" id="choice{{ forloop.counter }}" name="choice" value="{{ choice.id }}" />
+                  {{ choice.choice_text }}
+                </label>
+              </div>
+            {% endfor %}
+          </div>
+          <div class="field">
+            <div class="control">
+              <button type="submit" class="button is-link" name="submit">VOTE</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </section>
+  </body>
+</html>
