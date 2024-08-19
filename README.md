@@ -990,4 +990,5 @@ value|dictsort:"<Attribute>" # value=dict Attribute=attribute in dict
 | U                 |  Seconds since the Unix Epoch | (January 1 1970 00:00:00 UTC).	 
 
 ## Tips
-หากแก้ไข Javascript ที่อยู่ใน Static แล้วไม่ Update ให้ใช้ `Ctrl+F5` เพื่อรีเซ็ต Cookies
+- หากแก้ไข Javascript ที่อยู่ใน Static แล้วไม่ Update ให้ใช้ `Ctrl+F5` เพื่อรีเซ็ต Cookies
+- ลองโยน Path จากคำสั่ง `{% url %}` เข้าเป็น Argument?
