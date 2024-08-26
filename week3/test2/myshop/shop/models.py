@@ -57,7 +57,7 @@ class PaymentMethod(models.Model):
     payment = models.ForeignKey(Payment, on_delete=models.CASCADE)
     QR = "QR"
     CREDIT = "CREDIT"
-    methodPayment = {"QR": QR, "CREDIT": CREDIT}
+    methodPayment = {"QR": QR, "CREDIT": CREDIT} # methodChoice = [("QR", "QR"), ("CREDIT", "CREDIT")]
     method = models.CharField(choices=methodPayment, max_length=6)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     

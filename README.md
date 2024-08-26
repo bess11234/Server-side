@@ -116,6 +116,14 @@ print(<คำสั่งที่เรียกข้อมูล>.query)
 
 ถ้าเพิ่ม Template แล้วเข้าไปไม่ได้ให้รัน python manage.py runserver ใหม่
 
+## Raise Http404
+```py
+try:
+    ...
+except <Model.class>.DoesNotExist:
+    raise Http404("There are no question %d"%question_id)
+```
+
 ## Add django-extensions for notebook .ipynb
 ```bash
 pip install django-extensions ipython jupyter notebook
@@ -127,6 +135,20 @@ pip install ipython==8.25.0 jupyter_server==2.14.1 jupyterlab==4.2.2 jupyterlab_
 แก้ไขเวอร์ชั่น WINDOW
 ```bash
 pip install ipython==8.25.0 jupyter_server==2.14.1 jupyterlab==4.2.2 jupyterlab_server==2.27.2 notebook==6.5.7
+```
+ถ้ามีไฟล์ <name>.txt ที่มีชื่อ Libraries ทั้งหมดสามารถใช้คำสั่ง
+```py
+pip install -r <name>.txt
+# <name.txt>
+asgiref==3.8.1
+Django==4.2.13
+psycopg2-binary==2.9.9
+sqlparse==0.5.0
+typing_extensions==4.12.2
+ipykernel==6.20.1
+jupyter==1.0.0
+django-extensions==3.2.1
+notebook==6.5.7
 ```
 ใน setting.py ต้องทำการเพิ่ม `django_extensions` เป็นส่วนหนึ่งของตัวแปร INSTALLED_ADDS ด้วย
 ```python
