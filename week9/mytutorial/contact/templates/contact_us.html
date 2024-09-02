@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contact Us Form</title>
+  </head>
+  <body>
+    <h1>Contact Us</h1>
+    <form method="POST">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      <div class="fieldWrapper">
+        {{ form.subject.errors }}
+        <label for="{{ form.subject.id_for_label }}">Email subject:</label>
+        {{ form.subject }}
+      </div>
+      <div class="fieldWrapper">
+        {{ form.message.errors }}
+        <label for="{{ form.message.id_for_label }}">Your message:</label>
+        {{ form.message }}
+      </div>
+      <div class="fieldWrapper">
+        {{ form.sender.errors }}
+        {% comment %} {% if form.sender.errors %}
+          <ol>
+            {% for error in form.sender.errors %}
+              <li>
+                <strong>{{ error|escape }}</strong>
+              </li>
+            {% endfor %}
+          </ol>
+        {% endif %} {% endcomment %}
+        <label for="{{ form.sender.id_for_label }}">Your email address:</label>
+        {{ form.sender.field }}
+      </div>
+      <div class="fieldWrapper">{{ form.cc_myself.errors }}
+        {{ form.cc_myself.label_tag }}
+        {{ form.cc_myself }}</div>
+
+      <p>
+        <input type="submit" value="Submit" />
+      </p>
+    </form>
+  </body>
+</html>

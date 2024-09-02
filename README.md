@@ -1014,3 +1014,174 @@ value|dictsort:"<Attribute>" # value=dict Attribute=attribute in dict
 ## Tips
 - หากแก้ไข Javascript ที่อยู่ใน Static แล้วไม่ Update ให้ใช้ `Ctrl+F5` เพื่อรีเซ็ต Cookies
 - ลองโยน Path จากคำสั่ง `{% url %}` เข้าเป็น Argument?
+
+# Week 9
+## Redirect
+```py
+# urls.py
+from django.urls import path
+urlpatterns = [path("", <view>, name="thanks")]
+
+# views.py
+from django.shortcuts import redirect, HttpResponse
+from django.http import HttpResponse
+
+def test(request):
+    return redirect("thanks") # จาก urls.py เอาจาก name ของ path
+def <view>(request):
+    return HttpResponse("THANKSSS")
+```
+
+## FORMS
+วิธีสร้าง Forms ใช้เพื่อสร้างชุดรับข้อมูล
+- นำมาเช็ค Valid ข้อมูล
+- สร้าง Form ได้ง่าย ๆ
+- นำมาเช็ค Error อัตโนมัติให้สามารถรู้ได้ว่าเราใส่อะไรผิดโดยแสดงที่หน้า UI/UX ก่อนส่ง Form เข้ามา
+```py
+# forms.py
+from django import forms
+class ContactForm(forms.Form):
+    subject = forms.CharField(max_length=100)
+    message = forms.CharField(widget=forms.Textarea)
+    sender = forms.EmailField()
+    cc_myself = forms.BooleanField(required=False)
+
+# views.py
+from .forms import ContactForm
+def contact(request):
+    form = ContactForm()
+
+    if request.method == "POST":
+        form = ContactForm(request.POST)
+
+        if form.is_valid():
+            subject = form.cleaned_data['subject'] # ดึงข้อมูล
+
+# templates/*.py
+<form method="POST">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div class="fieldWrapper">
+        {{ form.subject.errors }}
+        <label for="{{ form.subject.id_for_label }}">Email subject:</label>
+        {{ form.subject }}
+    </div>
+    <div class="fieldWrapper">
+        {{ form.message.errors }}
+        <label for="{{ form.message.id_for_label }}">Your message:</label>
+        {{ form.message }}
+    </div>
+    <div class="fieldWrapper">
+        {{ form.sender.errors }}
+        <label for="{{ form.sender.id_for_label }}">Your email address:</label>
+        {{ form.sender }}
+    </div>
+    <div class="fieldWrapper">
+        {{ form.cc_myself.errors }}
+        <label for="{{ form.cc_myself.id_for_label }}">CC yourself?</label>
+        {{ form.cc_myself }}
+    </div>
+</form>
+# OR
+<form method="POST">
+{% csrf_token %}
+{{ form }}
+</form>
+```
+
+## Form attributes (Template)
+[Doc](https://docs.djangoproject.com/en/5.1/topics/forms/)
+```py
+{{ field }} # Input tag
+{{ field.errors }} # เช็ค Validate Default: ul-tag เราสามารถ For i in field.errors โดยแต่ละ i จะเป็น Error แต่ละอัน แนะนำใช้ i|escape หรือ i
+{{ field.value }} # ได้ค่าตาม Initial ของ Field
+{{ field.help_text }} 
+{{ field.html_name }} # ให้ Field name มา
+{{ field.auto_id }} # 
+{{ field.id_for_label }} # ID ที่เชื่อมกับ {{ field }}
+{{ field.is_hidden }} # ไม่แสดงอยู่ใน HTML
+{{ field.label }} # ชื่อ Field ex. "Sender", "Cc myself"
+{{ field.label_tag }} # สร้าง Label ที่มี ID เชื่อมกับ {{ field }}
+{{ field.as_field_group }} # สร้าง Label กับ Input ให้เลย
+{{ <field>.field }} # เอา Object django ออกมาว่าเป็น form field อะไร
+```
+
+## Form attributes (Views|Forms API)
+[Doc](https://docs.djangoproject.com/en/5.1/ref/forms/api/)
+
+### Attribute is_bound เช็คว่ามีข้อมูลอยู่ใน Form หรือไม่
+```py
+f = ContactForm()
+f.is_bound # False
+f.is_valid() # False
+f.errors # {}
+f = ContactForm({'subject': 'hello'})
+f.is_bound # True
+f.is_valid() # False
+```
+
+### Function is_valid() เช็ดว่าข้อมูลที่อยู่ใน Form ถูกต้องหรือไม่
+```py
+data = {
+    "subject": "",
+    "message": "Hi there",
+    "sender": "invalid email address",
+    "cc_myself": True,
+}
+f = ContactForm(data)
+f.is_valid()
+# False
+f.errors
+# {'sender': ['Enter a valid email address.'], 'subject': ['This field is required.']}
+f.errors.as_data()
+# {'sender': [ValidationError(['Enter a valid email address.'])], 'subject': [ValidationError(['This field is required.'])]}
+f.errors.as_json()
+# {"sender": [{"message": "Enter a valid email address.", "code": "invalid"}], "subject": [{"message": "This field is required.", "code": "required"}]}
+```
+
+### Parameter initial ข้อมูลสำหรับการต้องใส่ข้อมูลซ้ำ ๆ
+```py
+f = ContactForm(initial={"subject": "Hi there!"}) # อย่าง username, password ที่ไม่ได้ให้กรอกเพิ่มเติม
+```
+
+### Function has_changed()
+ใช้หากต้องการเทียบกับข้อมูล initial ว่ามีการเปลี่ยนแปลงหรือไม่จากข้อมูลของ initial
+```py
+data = {
+    "subject": "hello",
+    "message": "Hi there",
+    "sender": "foo@example.com",
+    "cc_myself": True,
+}
+f = ContactForm(data, initial=data)
+f.has_changed()
+# False
+f = ContactForm(request.POST, initial=data)
+f.has_changed()
+# True
+f.changed_data
+# ['subject', 'message']
+```
+
+### Attribute cleaned_data
+ใช้หากข้อมูลภายใน Form valid แล้ว โดยจะสามารถดึงข้อมูลของแต่ละ Field ออกมาได้
+- แนะนำให้ใช้หลัง is_valid() โดยต้องเป็น True
+- หากใช้แล้วเป็น False แล้วดึงข้อมูลจะได้แค่ข้อมูลที่ Valid
+- หากข้อมูลที่ให้ Form ไปมีเกินมาก็จะโดยตัดทิ้ง แต่ยัง Valid
+```py
+data = {
+    "subject": "hello",
+    "message": "Hi there",
+    "sender": "foo@example.com",
+    "cc_myself": True,
+}
+f = ContactForm(data)
+f.is_valid()
+# True
+f.cleaned_data
+# {'cc_myself': True, 'message': 'Hi there', 'sender': 'foo@example.com', 'subject': 'hello'}
+```
+
+### TIP
+- หากลอง print(Forms()) จะได้เป็นโครงสร้าง HTML
+- Form template part2 [Doc](https://docs.djangoproject.com/en/5.1/ref/forms/api/#default-rendering)
