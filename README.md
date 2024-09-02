@@ -958,6 +958,7 @@ value|cut:"<String>" # string=" "; value="String with spaces", the output will b
 value|default:"<String>" # value==False display <string>
 value|default_if_none:"<String>" # value==None display <string>
 value|dictsort:"<Attribute>" # value=dict Attribute=attribute in dict
+value|dictsortreversed:"<Attribute>" # Likes dictsort but descending
 ```
 
 ### Date format (Filter)
@@ -1182,6 +1183,20 @@ f.cleaned_data
 # {'cc_myself': True, 'message': 'Hi there', 'sender': 'foo@example.com', 'subject': 'hello'}
 ```
 
+### กำหนด CSS ใน Forms
+```py
+first_name = forms.CharField(
+    widget=forms.Textarea(attrs={"color":"red"})
+)
+
+birth_date = forms.DateField(
+    widget=forms.DateInput(attrs={"type": "date"})
+)
+```
+
 ### TIP
 - หากลอง print(Forms()) จะได้เป็นโครงสร้าง HTML
 - Form template part2 [Doc](https://docs.djangoproject.com/en/5.1/ref/forms/api/#default-rendering)
+- Form ใน Template ต้องมี {% csrf_token %} เสมอ
+- ใน Form หากต้องการใส่ Select ธรรมดาคือ ChoiceField แต่หากเป็น Queryset คือ ModelChoiceField
+- หากต้องการบันทึกข้อมูลใส่ Model.object.create(**Form) ได้เลย เพื่อความสะดวก
