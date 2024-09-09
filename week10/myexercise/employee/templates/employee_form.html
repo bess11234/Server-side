@@ -1,16 +1,17 @@
 {% extends "layout.html" %}
 
-{% block title%} Create Project {% endblock %}
+{% block title%} Create Employee {% endblock %}
 
 {% block head%}
-<h1>Form Project</h1>
+<h1>Form Employee</h1>
 {% endblock %}
 
 {% block content %}
 <div class="emp-form-box">
   <form method="post">
     {% csrf_token %}
-      <!-- เรียกใช้ form -->
+    {{ form }}
+    <!-- เรียกใช้ form -->
     <button type="submit">Save</button>
   </form>
 </div>

@@ -10,27 +10,32 @@
 {% endblock %}
 
 {% block content %}
+{% if projects %}
 <div class="itemGroup">
     <div>
         <br>
         <!-- กำหนด path ไปยังหน้า form สร้าง project -->
-        <a href="#"><button class="newemp">New Project</button></a>
+        <a href="{% url 'project_form' %}"><button class="newemp">New Project</button></a>
       </div>
     
       <!-- for loop แสดงผลข้อมูล project -->
+    {% for i in projects %}
     <div class="item">
         <!-- โปรเจค id และ ชื่อ -->
-        <div></div>
+        <div>{{ i.id }} {{ i.name }}</div>
 
         <!-- วันเริ่ม และ วันกำหนดส่งโปรเจค -->
-        <div></div>
+        <div>{{ i.start_date }} - {{ i.due_date }}</div>
 
         <div class="action">
             <!-- กำหนด path ให้ถูกต้อง ไปยังหน้า project detail -->
-            <a href="#" class="edit btn">แก้ไข</a>          
+            <a href="{% url 'project_detail' i.id %}" class="edit btn">แก้ไข</a>
+            <a href="{% url 'project_delete' i.id %}" class="delete btn">ลบ</a>
         </div>
     </div>
+    {% endfor %}
     
 </div>
+{% endif %}
 {% endblock %}
 
