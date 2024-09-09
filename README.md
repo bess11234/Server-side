@@ -1213,3 +1213,181 @@ birth_date = forms.DateField(
 - Form ใน Template ต้องมี {% csrf_token %} เสมอ
 - ใน Form หากต้องการใส่ Select ธรรมดาคือ ChoiceField แต่หากเป็น Queryset คือ ModelChoiceField
 - หากต้องการบันทึกข้อมูลใส่ Model.object.create(**Form.cleaned_data) ได้เลย เพื่อความสะดวก
+
+
+# Week 10
+## ModelForm
+```py
+from django import forms
+from django.core.exceptions import ValidationError
+class BookingForm(forms.ModelForm):
+    class Meta:
+        model = Booking
+        fields = # "__all__"
+        [
+            "room",
+            "staff",
+            "email",
+            "start_time",
+            "end_time",
+            "purpose"
+        ]
+        widgets = {
+            "email": forms.TextInput(attrs={"class": "input"}),
+            "purpose": forms.Textarea(attrs={"rows": 5, "class": "textarea"})
+        }
+```
+### Transform Model to Form
+| **Model field**               | **Form field**                                                                                                      |
+|-------------------------------|---------------------------------------------------------------------------------------------------------------------|
+| **AutoField**                 | Not represented in the form                                                                                         |
+| **BigAutoField**              | Not represented in the form                                                                                         |
+| **BigIntegerField**           | IntegerField with<br>min_value set to -9223372036854775808<br>and max_value set to 9223372036854775807.             |
+| **BinaryField**               | CharField, if<br>editable is set to<br>True on the model field, otherwise not<br>represented in the form.           |
+| **BooleanField**              | BooleanField, or<br>NullBooleanField if<br>null=True.                                                               |
+| **CharField**                 | CharField with<br>max_length set to the model field’s<br>max_length and<br>empty_value<br>set to None if null=True. |
+| **DateField**                 | DateField                                                                                                           |
+| **DateTimeField**             | DateTimeField                                                                                                       |
+| **DecimalField**              | DecimalField                                                                                                        |
+| **DurationField**             | DurationField                                                                                                       |
+| **EmailField**                | EmailField                                                                                                          |
+| **FileField**                 | FileField                                                                                                           |
+| **FilePathField**             | FilePathField                                                                                                       |
+| **FloatField**                | FloatField                                                                                                          |
+| **ForeignKey**                | ModelChoiceField<br>(see below)                                                                                     |
+| **ImageField**                | ImageField                                                                                                          |
+| **IntegerField**              | IntegerField                                                                                                        |
+| **IPAddressField**            | IPAddressField                                                                                                      |
+| **GenericIPAddressField**     | GenericIPAddressField                                                                                               |
+| **JSONField**                 | JSONField                                                                                                           |
+| **ManyToManyField**           | ModelMultipleChoiceField<br>(see below)                                                                             |
+| **PositiveBigIntegerField**   | IntegerField                                                                                                        |
+| **PositiveIntegerField**      | IntegerField                                                                                                        |
+| **PositiveSmallIntegerField** | IntegerField                                                                                                        |
+| **SlugField**                 | SlugField                                                                                                           |
+| **SmallAutoField**            | Not represented in the form                                                                                         |
+| **SmallIntegerField**         | IntegerField                                                                                                        |
+| **TextField**                 | CharField with<br>widget=forms.Textarea                                                                             |
+| **TimeField**                 | TimeField                                                                                                           |
+| **URLField**                  | URLField                                                                                                            |
+| **UUIDField**                 | UUIDField                                                                                                           |
+
+### Error
+หากมี Error เกิดขึ้นจะมีการใส่ class ไว้ใน HTML โดยชื่อว่า "errorlist"
+- สามารถแก้ CSS ได้ที่ class นี้เลย
+```html
+<div>Subject:
+  <ul class="errorlist"><li>This field is required.</li></ul>
+  <input type="text" name="subject" maxlength="100" required aria-invalid="true">
+</div>
+<div>Message:
+  <textarea name="message" cols="40" rows="10" required>Hi there</textarea>
+</div>
+<div>Sender:
+  <ul class="errorlist"><li>Enter a valid email address.</li></ul>
+  <input type="email" name="sender" value="invalid email address" required aria-invalid="true">
+</div>
+<div>Cc myself:
+  <input type="checkbox" name="cc_myself" checked>
+</div>
+```
+### Label, Error text
+เราสามารถกำหนด Label ของแต่ Field ได้โดยการ
+```py
+from django.utils.translation import gettext_lazy as _
+class BookingForm(forms.ModelForm):
+    class Meta:
+        model = Booking
+        fields = # "__all__"
+        [
+            "room",
+            "staff",
+            "email",
+            "start_time",
+            "end_time",
+            "purpose"
+        ]
+        widgets = {
+            "email": forms.TextInput(attrs={"class": "input"}),
+            "purpose": forms.Textarea(attrs={"rows": 5, "class": "textarea"})
+        }
+        labels = {
+            "room": _("Room"),
+        }
+        help_texts = {
+            "room": _("Some useful info of room."),
+        }
+        error_messages = {
+            "room": {
+                "max_length": _("Error text if wrong input of room."),
+            },
+        }
+```
+
+### Validate
+ทุกครั้งที่มีการ .is_valid() จะทำการเรียกฟังชั่นที่ขึ้นต้นด้วย `clean` และต่อด้วย field เช่น `clean_<field>` ทุกครั้ง
+```py
+class EmployeeForm(forms.ModelForm):
+    M = "Male"
+    F = "Female"
+    LGBT = "LGBT"
+    GENDER_CHOICES = (
+        ("M", M),
+        ("F", F),
+        ("LGBT", LGBT)
+    )
+    gender = forms.ChoiceField(choices=GENDER_CHOICES, initial=1)
+    class Meta:
+        model = Employee
+        fields = # "__all__"
+        [
+            "first_name",
+            "last_name",
+            "gender",
+            "birth_date",
+            "hire_date",
+            "salary",
+            "position"
+        ]
+        widgets = {
+            "birth_date": forms.DateInput(attrs={"type": "date"}),
+            "hire_date": forms.DateInput(attrs={"type": "date"}),
+        }
+    def clean(self):
+        cleaned_data = super().clean()
+        birth_date = cleaned_data.get("birth_date")
+        hire_date = cleaned_data.get("hire_date")
+        if hire_date < birth_date:
+            raise ValidationError(
+                "Error can be future hire date" # ของทั้ง Form
+            )
+        return cleaned_data
+    def clean_<field>(self):
+        ...
+    def clean_room(self):
+        ...
+```
+- `self.add_error(<field>, <msg>)` Field เดียว
+- `ValidationError(<msg>)` ของ clean แทน
+
+ข้อแตกต่างระหว่าง clean กับ clean_field
+- หากใช้ `ValidationError(<msg>)` กับ clean จะเป็น Error ของ Form
+- หากใช้ `ValidationError(<msg>)` กับ clean_field จะเป็น Error ของ Field
+- หรือใช้ `self.add_error(<field>, <msg>)` จะเป็นการกำหนด Error ของ Field
+
+### Update data by using ModelForm
+เราใช้ Instance โดยต้องเป็นข้อมูลที่ดึงจาก Database
+```py
+# Method get
+a = Article.objects.get(pk=1)
+f = ArticleForm(instance=a)
+# Update/ Method post
+a = Article.objects.get(pk=1)
+f = ArticleForm(request.POST, instance=a)
+f.save()
+```
+
+## TIPS
+- `ForeignKey` จะถูกแปลงเป็น django.forms.ModelChoiceField ซึ่งคือ ChoiceField ที่มีตัวเลือกเป็น queryset ของ model
+- `ManyToManyField` จะถูกแปลงเป็น django.forms.ModelMultipleChoiceField ซึ่งคือ MultipleChoiceField ที่มีตัวเลือกเป็น queryset ของ model
+- ถ้าอยากได้ date ปัจจุบันใช้ `timezone.now().date()`
