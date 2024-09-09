@@ -1110,7 +1110,7 @@ form.as_ul()
 {{ field.errors }} # เช็ค Validate Default: ul-tag เราสามารถ For i in field.errors โดยแต่ละ i จะเป็น Error แต่ละอัน แนะนำใช้ i|escape หรือ i
 {{ field.value }} # ได้ค่าตาม Initial ของ Field
 {{ field.help_text }} 
-{{ field.html_name }} # ให้ Field name มา
+{{ field.html_name }} # เอา Object django ออกมาว่าเป็น form field อะไร
 {{ field.auto_id }} # 
 {{ field.id_for_label }} # ID ที่เชื่อมกับ {{ field }}
 {{ field.is_hidden }} # ไม่แสดงอยู่ใน HTML
@@ -1294,6 +1294,7 @@ class BookingForm(forms.ModelForm):
 ### Label, Error text
 เราสามารถกำหนด Label ของแต่ Field ได้โดยการ
 ```py
+from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 class BookingForm(forms.ModelForm):
     class Meta:
@@ -1327,6 +1328,7 @@ class BookingForm(forms.ModelForm):
 ### Validate
 ทุกครั้งที่มีการ .is_valid() จะทำการเรียกฟังชั่นที่ขึ้นต้นด้วย `clean` และต่อด้วย field เช่น `clean_<field>` ทุกครั้ง
 ```py
+from django.core.exceptions import ValidationError
 class EmployeeForm(forms.ModelForm):
     M = "Male"
     F = "Female"
