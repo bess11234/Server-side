@@ -1048,6 +1048,7 @@ class ContactForm(forms.Form):
     cc_myself = forms.BooleanField(required=False)
 
 # views.py
+from django.shortcuts import render
 from .forms import ContactForm
 def contact(request):
     form = ContactForm()
@@ -1057,6 +1058,9 @@ def contact(request):
 
         if form.is_valid():
             subject = form.cleaned_data['subject'] # ดึงข้อมูล
+    return render(request, "*.html", {
+        "form": form
+    })
 
 # templates/*.py
 <form method="POST">
@@ -1088,6 +1092,15 @@ def contact(request):
 {% csrf_token %}
 {{ form }}
 </form>
+```
+
+### FORMS variety
+```py
+form = ContactForm()
+form.as_div() # default
+form.as_p()
+form.as_table()
+form.as_ul()
 ```
 
 ## Form attributes (Template)
@@ -1199,4 +1212,4 @@ birth_date = forms.DateField(
 - Form template part2 [Doc](https://docs.djangoproject.com/en/5.1/ref/forms/api/#default-rendering)
 - Form ใน Template ต้องมี {% csrf_token %} เสมอ
 - ใน Form หากต้องการใส่ Select ธรรมดาคือ ChoiceField แต่หากเป็น Queryset คือ ModelChoiceField
-- หากต้องการบันทึกข้อมูลใส่ Model.object.create(**Form) ได้เลย เพื่อความสะดวก
+- หากต้องการบันทึกข้อมูลใส่ Model.object.create(**Form.cleaned_data) ได้เลย เพื่อความสะดวก
