@@ -1557,3 +1557,20 @@ class CompanyRouter: # CLASS ROUTER
             return db == self.database
         return None
 ```
+
+## MODEL META
+สามารถระบุได้ใน Model โดยต้องประกาศ Class Meta ก่อน
+```py
+from django.db import models
+class test(models.Model):
+    class Meta:
+```
+
+[doc](https://docs.djangoproject.com/en/5.1/ref/models/options/)
+- unique_together การผูก Constraint key unique เข้าด้วยกันโดยเราต้องระบุ Field
+```py
+unique_together = ["field", "field", ...]
+```
+
+## FORM META
+[doc](https://github.com/django/django/blob/3.1/django/forms/models.py#L195)
