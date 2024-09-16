@@ -1559,6 +1559,8 @@ class CompanyRouter: # CLASS ROUTER
 ```
 
 ## MODEL META
+[doc](https://docs.djangoproject.com/en/5.1/ref/models/options/)
+
 สามารถระบุได้ใน Model โดยต้องประกาศ Class Meta ก่อน
 ```py
 from django.db import models
@@ -1566,7 +1568,6 @@ class test(models.Model):
     class Meta:
 ```
 
-[doc](https://docs.djangoproject.com/en/5.1/ref/models/options/)
 - unique_together การผูก Constraint key unique เข้าด้วยกันโดยเราต้องระบุ Field
 ```py
 unique_together = ["field", "field", ...]
