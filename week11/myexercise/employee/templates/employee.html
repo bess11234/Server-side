@@ -1,0 +1,66 @@
+{% extends "layout.html" %}
+
+{% block title %}
+Employee
+{% endblock %}
+
+{% block head %}
+<h1>Employee</h1>
+{% endblock %}
+
+{% block content %}
+<div style="display: flex;flex-direction: row;justify-content: space-between;">
+  <!-- กำหนด path ไปยังหน้า form เพิ่มพนักงาน -->
+  <a href="{% url 'employee_form' %}"><button class="newemp">New Employee</button></a>
+  <h1>{{ employees.count }} People{{ employees|length|pluralize }}</h1>
+</div>
+{% if employees %}
+<table>
+  <thead>
+    <tr>
+      <th>Full Name</th>
+      <th>Genger</th>
+      <th>Birth Date</th>
+      <th>Hire Date</th>
+      <th>Salary</th>
+      <th>Department</th>
+      <th>Position</th>
+      <th>Location</th>
+      <th>Province</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <!-- วนลูปแสดงข้อมูลพนักงาน -->
+
+    {% for i in employees|dictsortreversed:"hire_date" %}
+    {% if forloop.first or forloop.last %}
+    <tr style="color:red">
+      {% else %}
+    <tr>
+      {% endif %}
+      <!-- ชื่อ นามสกุล -->
+      <td>{{ i.get_full_name }}</td>
+      <!-- เพศ -->
+      <td>{{ i.gender }}</td>
+      <!-- วันเกิด -->
+      <td>{{ i.birth_date }}</td>
+      <!-- วันเริ่มงาน -->
+      <td>{{ i.hire_date }}</td>
+      <!-- เงินเดือน -->
+      <td>{{ i.salary }}</td>
+      <!-- แผนก -->
+      <td>{{ i.position.department.name }}</td>
+      <!-- ตำแหน่งงาน -->
+      <td>{{ i.position.name }}</td>
+      <!-- ที่อยู่ -->
+      <td>{{ i.employeeaddress.location }}</td>
+      <!-- ที่อยู่ จังหวัด -->
+      <td>{{ i.employeeaddress.province }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+
+</table>
+{% endif %}
+{% endblock %}

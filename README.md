@@ -1392,4 +1392,103 @@ f.save()
 ## TIPS
 - `ForeignKey` จะถูกแปลงเป็น django.forms.ModelChoiceField ซึ่งคือ ChoiceField ที่มีตัวเลือกเป็น queryset ของ model
 - `ManyToManyField` จะถูกแปลงเป็น django.forms.ModelMultipleChoiceField ซึ่งคือ MultipleChoiceField ที่มีตัวเลือกเป็น queryset ของ model
-- ถ้าอยากได้ date ปัจจุบันใช้ `timezone.now().date()`
+- ถ้าอยากได้ date ปัจจุบันใช้ `timezone.now().date()` หรือ `date.today()`
+
+# Week 11
+## Transaction Atomic
+เมื่อต้องการทำการ INSERT ข้อมูลเข้าไปใน DATABASE >= 2 ครั้งในการทำ FORM เดียวต้องใช้
+```py
+from django.db import transaction # ใช้ Function transaction
+class Test(View):
+    def post(self, request):
+        try:
+            with transaction.atomic():
+                location = form.cleaned_data.get("location")
+                district = form.cleaned_data.get("district")
+                province = form.cleaned_data.get("province")
+                postal_code = form.cleaned_data.get("postal_code")
+                
+                employee = form.save() # Save Employees
+                
+                # Save location Employee
+                EmployeeAddress.objects.create(employee=employee, location=location, 
+                                                district=district, province=province, 
+                                                postal_code=postal_code)
+        except Exception:
+            print("Occur Error")
+```
+- เพื่อป้องกันการทำงานที่ผิดพลาด หากระบบล้มที่การสร้าง Employee อย่างเดียว และยังไม่ได้ใส่ Location
+- เมื่อเกิดการทำงานที่ผิดพลาดจะทำ ROLLBACK ให้ทันที
+
+## DBRouter
+เมื่อต้องการใช้ 2 Database ใน Project เดียวกัน ควรสร้าง `router.py` ใน App
+```py
+# setting.py
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'employee_db',
+        'USER': '....',
+        'PASSWORD': '....',
+        'PORT': '5432',
+        'HOST': 'localhost',
+    },
+    'company': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'company_db',
+        'USER': '....',
+        'PASSWORD': '....',
+        'PORT': '5432',
+        'HOST': 'localhost',
+    }
+}
+```
+```py
+# Week 5 เคยทำแล้ว
+class EmployeeRouter: # ชื่ออะไรก็ได้
+    def db_for_read(self, model, **hints):
+        return
+    def db_for_write(self, model, **hints):
+        return
+    def allow_relation(self, obj1, obj2, **hints):
+        return
+    def allow_migrate(self, db, app_label, model_name=None, **hints):
+        return
+```
+เมื่อสร้างไฟล์เสร็จแล้วต้องไปที่ `setting.py`
+- systax `<app>.<name_router>.<class_in_router>`
+```py
+DATABASE_ROUTERS = ["<app>.router.CompanyRouter", "<app>.router.EmployeeRouter"]
+```
+หลังจากทำเสร็จแล้วให้ทำ Makemigration และ Migrate
+```py
+py manage.py makemigrations <option:app> # Default all app
+py manage.py migrate # Default Database
+py manage.py migrate --database=<db_name> <option:app> # ระบุ DB และ Makemigration ของ app ที่จะใส่เข้าไปใน DB
+```
+
+### GET DATA FROM ANOTHER DATABASE
+หากต้องการให้ Database ของ `app` เชื่อมกับอีก Database ของ `app` ต้องทำ Integerfield ภายใน
+```py
+# model_app.py
+class Employee(models.Model):
+    position_id = models.IntegerField(null=True)
+# model_otherapp.py
+class Position(mdoels.Model):
+    name = models.CharField(max_length=155)
+```
+โดยหากต้องการให้ข้อมูล Object เชื่อมกันต้องมีการ ForLoop
+```py
+# views.py
+from .models import Employee
+from otherapp.models import Position
+class Test(View):
+    def get(self, request):
+        employee = Employee.objects.all()
+
+        for i in employee: # ใส่ Position เข้าไป
+            i.position = Position.objects.using("<db_name>").get(pk=i.position_id) # ใช้ IntegerField ในการระบุ ID
+        return render(request, ".html", {
+            "employees": employee
+        })
+```

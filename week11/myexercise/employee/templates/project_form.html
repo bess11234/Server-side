@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+
+{% block title%} Create Project {% endblock %}
+
+{% block head%}
+<h1>Form Project</h1>
+{% endblock %}
+
+{% block content %}
+<div class="emp-form-box">
+  <form method="post">
+    {% csrf_token %}
+      <!-- เรียกใช้ form -->
+      <div>{{ form.name.as_field_group }}</div>
+      <div>{{ form.manager.as_field_group }}</div>
+      <div>{{ form.due_date.as_field_group }}</div>
+      <div>{{ form.start_date.as_field_group }}</div>
+      <div style="margin-top:10px">{{ form.description.label_tag }}<br>{{ form.description }}</div>
+    <button type="submit">Save</button>
+  </form>
+</div>
+
+{% endblock %}
