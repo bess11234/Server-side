@@ -3,28 +3,27 @@ from django import forms
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from .models import *
+
 from company.models import Position
 
 class EmployeeForm(forms.ModelForm):
-    # location = models.TextField(null=True, blank=True)
-    location = forms.CharField(widget=forms.Textarea(attrs={"cols":30, "rows":3}))
+    location = forms.CharField(required=False, widget=forms.Textarea({"cols":30, "rows":5}))
     district = forms.CharField(max_length=100)
     province = forms.CharField(max_length=100)
     postal_code = forms.CharField(max_length=15)
-    
+
     class Meta:
         model = Employee
         fields = "__all__"
         widgets = {
             "birth_date": forms.DateInput(attrs={"type":"date"}),
-            "hire_date": forms.DateInput(attrs={"type":"date"}),
+            "hire_date": forms.DateInput(attrs={"type":"date"})
         }
 
-    position_id = forms.ModelChoiceField(
-        queryset=Position.objects.using("company").all()
-    )
+    position_id = forms.ModelChoiceField(queryset=Position.objects.all(), label="Position")
+
     gender = forms.ChoiceField(
-        choices=( ("", "---------"), ("M", "Male"), ("F", "Female"), ("LGBT", "LGBT") )
+        choices=( (None, "---------"), ("M", "Male"), ("F", "Female"), ("LGBT", "LGBT") )
     )
     
     def clean_hire_date(self):

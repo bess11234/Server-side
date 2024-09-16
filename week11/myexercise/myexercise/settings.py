@@ -84,17 +84,17 @@ DATABASES = {
         'PORT': '5432',
         'HOST': 'localhost',
     },
-    'company': {
+    'company_db': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'company_db',
         'USER': 'postgres',
         'PASSWORD': 'password',
-        'PORT': '5432',
         'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
-DATABASE_ROUTERS = ["company.router.CompanyRouter", "employee.router.EmployeeRouter"]
 
+DATABASE_ROUTERS = ["company.router.CompanyRouter"]
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

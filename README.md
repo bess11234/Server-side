@@ -1,4 +1,4 @@
-https://github.com/it-web-pro/django-week2
+https://github.com/it-web-pro/
 # รหัส: password
 
 
@@ -1395,8 +1395,15 @@ f.save()
 - ถ้าอยากได้ date ปัจจุบันใช้ `timezone.now().date()` หรือ `date.today()`
 
 # Week 11
-## Transaction Atomic
-เมื่อต้องการทำการ INSERT ข้อมูลเข้าไปใน DATABASE >= 2 ครั้งในการทำ FORM เดียวต้องใช้
+## Transaction
+คำสั่งที่ทำ Transaction control จะใช้งานเฉพาะกับ SQL DML Command เช่น INSERT, UPDATE และ DELETE เท่านั้น
+
+- COMMIT − ยืนยันการเปลี่ยนแปลงข้อมูล
+- ROLLBACK − ดึงข้อมูลเก่าก่อนหน้ากลับมา จากจุด savepoint
+- SAVEPOINT − กำหนดจุดของข้อมูล ที่ให้ rollback ข้อมูลกลับมา
+
+### Transaction Atomic
+เมื่อต้องการทำ INSERT/UPDATE/DELETE ข้อมูลเข้าไปใน DATABASE >= 2 ครั้งกับ TABLE
 ```py
 from django.db import transaction # ใช้ Function transaction
 class Test(View):
@@ -1408,7 +1415,7 @@ class Test(View):
                 province = form.cleaned_data.get("province")
                 postal_code = form.cleaned_data.get("postal_code")
                 
-                employee = form.save() # Save Employees
+                employee = form.save() # Save Employees และจะได้ข้อมูล Employee มาด้วย
                 
                 # Save location Employee
                 EmployeeAddress.objects.create(employee=employee, location=location, 
@@ -1417,11 +1424,45 @@ class Test(View):
         except Exception:
             print("Occur Error")
 ```
-- เพื่อป้องกันการทำงานที่ผิดพลาด หากระบบล้มที่การสร้าง Employee อย่างเดียว และยังไม่ได้ใส่ Location
-- เมื่อเกิดการทำงานที่ผิดพลาดจะทำ ROLLBACK ให้ทันที
+- เพื่อป้องกันการทำงานที่ผิดพลาด หากระบบล้ม (ไฟดับ, เครื่องพัง) ที่การสร้าง Employee อาจจะไม่มีข้อมูล Location
+- เมื่อเกิดการทำงานที่ผิดพลาดจะ ROLLBACK ให้ทันที
+- `Transaction.atomic()` ทำให้คำสั่งที่อยู่ภายในเป็น Transaction เดียวกัน
+
+#### วิธีที่ไม่ควรทำในการเขียน Transaction
+Try catch ไว้ข้างใน Transaction จะทำให้ Transaction ถ้าถูกเด้ง Error มันก็จะ ROLLBACK ไม่ได้
+
+วิธีที่ 1 (ไม่ควรทำ) เพราะว่าประกาศ Decorator ทำให้ทั้งหมดนี้เป็นการทำ Transaction 
+```py
+@transaction.atomic
+def test():
+    try:
+        perform()
+    except Exception:
+        print()
+```
+วิธีที่ 2 (ไม่ควรทำ)
+```py
+def test():
+    with transaction.atomic():
+        try:
+            perform()
+        except Exception:
+            print()
+```
+วิธีที่ 3 (ควรทำ)
+```py
+        try:
+            with transaction.atomic():
+                perform()
+        except Exception:
+            print()
+```
 
 ## DBRouter
 เมื่อต้องการใช้ 2 Database ใน Project เดียวกัน ควรสร้าง `router.py` ใน App
+- ทำเมื่อต้องการทำ Replica Database โดยเอาข้อมูลจาก Primary Database
+- Primary Database มีการทำ SELECT/INSERT/UPDATE เยอะแล้ว แล้วเมื่อต้องการออกรายงานมันต้องดึงข้อมูลเยอะ
+- Replica Database เลยเอาไว้ออกรายงานแทน Primary Database
 ```py
 # setting.py
 DATABASES = {
@@ -1456,9 +1497,10 @@ class EmployeeRouter: # ชื่ออะไรก็ได้
         return
 ```
 เมื่อสร้างไฟล์เสร็จแล้วต้องไปที่ `setting.py`
-- systax `<app>.<name_router>.<class_in_router>`
+- syntax: `<app>.<name_router>.<class_in_router>`
 ```py
-DATABASE_ROUTERS = ["<app>.router.CompanyRouter", "<app>.router.EmployeeRouter"]
+# setting.py
+DATABASE_ROUTERS = ["<app>.router.CompanyRouter", "<app>.router.EmployeeRouter"] # การวางลำดับมีผลต่อการอ่าน Router ใครมาก่อนมาหลัง
 ```
 หลังจากทำเสร็จแล้วให้ทำ Makemigration และ Migrate
 ```py
@@ -1491,4 +1533,27 @@ class Test(View):
         return render(request, ".html", {
             "employees": employee
         })
+```
+
+### SETTING ROUTER
+```py
+class CompanyRouter: # CLASS ROUTER
+    route_app = {"company"} # APP
+    database = "company_db" # DATABASE
+    def db_for_read(self, model, **hints):
+        if model._meta.app_label in self.route_app:
+            return self.database
+        return None
+    def db_for_write(self, model, **hints):
+        if model._meta.app_label in self.route_app:
+            return self.database
+        return None
+    def allow_relation(self, obj1, obj2, **hints):
+        if obj1._meta.app_label in self.route_app or obj1._meta.app_label in self.route_app:
+            return True
+        return None
+    def allow_migrate(self, db, app_label, model_name=None, **hints):
+        if app_label in self.route_app:
+            return db == self.database
+        return None
 ```
