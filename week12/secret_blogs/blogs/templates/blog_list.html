@@ -8,12 +8,16 @@
 
     <div class="col">
         <!-- btn for create blog -->
-        <a type="button" class="btn btn-primary" href="{% url 'blog-create' %}">Create</a>
+        {% if perms.blogs.add_blog %}
+            <a type="button" class="btn btn-primary" href="{% url 'blog-create' %}">Create</a>
+        {% endif %}
     </div>
 
     <div class="col">
         <!-- btn for manage category -->
-        <a type="button" class=" btn btn-info text-white" href="{% url 'category-list' %}" >Blog Category</a>
+        {% if perms.category.view_category %}
+            <a type="button" class=" btn btn-info text-white" href="{% url 'category-list' %}" >Blog Category</a>
+        {% endif %}
     </div>
     
 </div>
@@ -31,7 +35,9 @@
             <tbody>
                 {% for blog in blogs %}
                 <tr>
+                    {% if perms.blogs.view_blog %}
                     <td><a href="{% url 'blog-detail' blog.id %}">{{blog.title }}</a></td>
+                    {% endif %}
                     <td>{{ blog.author.username }}</td>
                     <td>{{blog.get_str_categorise}}</td>
                     <td>{{ blog.created_at|date:"Y-m-d H:i" }}</td>

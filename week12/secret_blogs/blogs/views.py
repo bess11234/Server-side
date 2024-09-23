@@ -6,6 +6,7 @@ from django.core.exceptions import PermissionDenied
 from django import views
 from blogs.models import Blog
 
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 
 def is_my_blog(user, author):
     if user == author:
@@ -13,18 +14,21 @@ def is_my_blog(user, author):
     return False
 
 
-class BlogListView(views.View):
-    
+class BlogListView(LoginRequiredMixin, PermissionRequiredMixin, views.View):
+    permission_required = ["blogs.view_blog"]
+
     def get(self, request: HttpRequest):
         blog_qs = Blog.objects.all()
         context = {
             "blogs": blog_qs
         }
+        print(request.user.has_perm("blogs.add_blog"))
         return render(request, 'blog_list.html', context)
 
 
-class BlogDetailView(views.View):
-    
+class BlogDetailView(LoginRequiredMixin, PermissionRequiredMixin, views.View):
+    permission_required = ["blogs.view_blog"]
+
     def get(self, request: HttpRequest, pk):
         blog = get_object_or_404(Blog, pk=pk)
         form = BlogForm(instance=blog)
@@ -35,8 +39,9 @@ class BlogDetailView(views.View):
         return render(request, "blog_detail.html", context)
     
 
-class BlogCreateView(views.View):
-    
+class BlogCreateView(LoginRequiredMixin, PermissionRequiredMixin, views.View):
+    permission_required = ["blogs.add_blog"]
+
     def get(self, request: HttpRequest):
         form = BlogForm()
         context = {
@@ -57,7 +62,8 @@ class BlogCreateView(views.View):
             return render(request, "blog_create.html", {"form": form})
             
 
-class BlogEditView(views.View):
+class BlogEditView(LoginRequiredMixin, PermissionRequiredMixin, views.View):
+    permission_required = ["blogs.change_blog"]
     
     def post(self, request: HttpRequest, pk):
         blog = get_object_or_404(Blog, pk=pk)
@@ -78,7 +84,8 @@ class BlogEditView(views.View):
             return render(request, "blog_detail.html", context)
         
         
-class BlogDeleteView(views.View):
+class BlogDeleteView(LoginRequiredMixin, PermissionRequiredMixin, views.View):
+    permission_required = ["blogs.delete_blog"]
     
     def get(self, request: HttpRequest, pk):
         blog = get_object_or_404(Blog, pk=pk)

@@ -1843,7 +1843,7 @@ from django.shortcuts import redirect
 
 def my_view(request):
     if not request.user.is_authenticated:
-        return redirect(f"{settings.LOGIN_URL}?next={request.path}")
+        return redirect(f"{settings.LOGIN_URL}?next={request.path}") # ?next="path" ใช้ต่อเมื่อหน้านั้นต้องการให้ Login แล้วเมื่อ Login แล้วมันจะเด้งเข้าหน้านั้นให้ (RECOMMENDED)
 ```
 #### login_required
 สิ่งที่มันจะทำหากเราไม่ได้ `login()` ก็คือจะ Redirect ไปตาม path ที่กำหนดไว้ใน `setting.py` โดยกำหนดใส่ตัวแปร `LOGIN_URL`
@@ -2109,7 +2109,12 @@ class Page(PermissionRequiredMixin, View):
 ### Template (Permission)
 ภายใน Django HTML เราสามารถเช็ค Permission ของ User ภายในเว็บได้โดยใช้
 ```py
-{% if perm.foo.add_employee %}
-{% if perm.add_employee %} # หากไม่มี Model ที่ชื่อเหมือนกันในแต่ละ APP
+{% if perms.foo.add_employee %}
+{% if perms.add_employee %} # หากไม่มี Model ที่ชื่อเหมือนกันในแต่ละ APP
 {% if user.is_authenticated %} # user สามารถใช้ภายใน Template ได้เลย
 ```
+
+## TIPS
+- ?next="path" ใช้ต่อเมื่อหน้านั้นต้องการให้ Login แล้วเมื่อ Login แล้วมันจะเด้งเข้าหน้านั้นให้ (RECOMMENDED)
+- AuthenticationForm(data=request.POST) อย่าลืม!
+- {% if perms.`<app>.<permission_codeName>` %}

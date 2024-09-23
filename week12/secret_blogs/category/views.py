@@ -6,9 +6,11 @@ from django.contrib import messages
 from category.models import Category
 from category.forms import CategoryModelForm
 
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 
-class CategoryListView(View):
-    
+class CategoryListView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = ["category.view_category"]
+    login_url = "/authen/"
     def get(self, request: HttpRequest):
         category_qs = Category.objects.all()
         
@@ -24,7 +26,8 @@ class CategoryListView(View):
         return render(request, "list_category.html", context)
     
 
-class CategoryCreateView(View):
+class CategoryCreateView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = ["category.add_category"]
     
     def post(self, request: HttpRequest):
         form = CategoryModelForm(request.POST)
@@ -38,7 +41,8 @@ class CategoryCreateView(View):
         return redirect('category-list')
         
 
-class CategoryEditView(View):
+class CategoryEditView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = ["category.change_category"]
     
     def post(self, request: HttpRequest, pk):
         category = get_object_or_404(Category, pk=pk)
@@ -50,7 +54,8 @@ class CategoryEditView(View):
         return redirect('category-list')
 
 
-class CategoryDeleteView(View):
+class CategoryDeleteView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    permission_required = ["category.delete_category"]
     
     def get(self, request: HttpRequest, pk):
         category = get_object_or_404(Category, pk=pk)
