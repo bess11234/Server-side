@@ -26,7 +26,6 @@ class EmployeeAddress(models.Model):
     district = models.CharField(max_length=100)
     province = models.CharField(max_length=100)
     postal_code = models.CharField(max_length=15)
-    
 
 class Project(models.Model):
     name = models.CharField(max_length=255)

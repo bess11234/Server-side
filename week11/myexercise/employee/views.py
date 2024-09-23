@@ -3,22 +3,22 @@ from django.shortcuts import render, redirect
 from django.views import View
 
 from .models import *
-from company.models import *
-
 from .forms import *
+from company.models import Position
 from django.db import transaction
 # Create your views here.
 
 class EmployeeView(View):
     def get(self, request):
-        employees = Employee.objects.all()
-        for employee in employees: # ใส่ position ให้จากอีก Database
-            employee.position = Position.objects.using("company").get(id=employee.position_id)
+        employees =  Employee.objects.all()
+
+        for i in employees:
+            i.position = Position.objects.get(pk=i.position_id)
+
         return render(request, "employee.html", {
             "employees": employees
         })
 
-# Create Employee
 class EmployeeFormView(View):
     def get(self, request):
         form = EmployeeForm()
@@ -27,27 +27,25 @@ class EmployeeFormView(View):
             "form": form
         })
     
+    @transaction.atomic
     def post(self, request):
         form = EmployeeForm(request.POST)
         
         if form.is_valid():
-            try:
-                with transaction.atomic():
-                    location = form.cleaned_data.get("location")
-                    district = form.cleaned_data.get("district")
-                    province = form.cleaned_data.get("province")
-                    postal_code = form.cleaned_data.get("postal_code")
-                    
-                    employee = form.save() # Save Employees
-                    
-                    # Save location Employee
-                    
-                    EmployeeAddress.objects.create(employee=employee, location=location, 
-                                                   district=district, province=province, 
-                                                   postal_code=postal_code)
-            except Exception:
-                print("Occur Error")
-                
+            location = form.cleaned_data.get("location")
+            district = form.cleaned_data.get("district")
+            province = form.cleaned_data.get("province")
+            postal_code = form.cleaned_data.get("postal_code")
+
+            # เพิ่มข้อมูล Employee
+            employee = form.save()
+            
+            # เพิ่มข้อมูล Employee Address
+            location = EmployeeAddress(location=location, employee=employee, 
+                                       district=district, province=province,
+                                       postal_code=postal_code)
+            location.save()
+
             return redirect("employees")
         return render(request, "employee_form.html", {
             "form": form
@@ -80,11 +78,12 @@ class ProjectFormView(View):
 class ProjectDetailView(View):
     def get(self, request, project_id):
         project = Project.objects.get(id=project_id)
-        staff = project.staff.all()
-        for i in staff:
-            i.position = Position.objects.using("company").get(pk=i.position_id)
         form = ProjectForm(instance=project)
         
+        staff = project.staff.all()
+        for i in staff:
+            i.position = Position.objects.get(pk=i.position_id)
+
         return render(request, "project_detail.html", {
             "form": form,
             "staff": staff,
@@ -94,13 +93,17 @@ class ProjectDetailView(View):
     def post(self, request, project_id):
         project = Project.objects.get(pk=project_id)
         form = ProjectForm(request.POST, instance=project)
-        
+
         if form.is_valid():
             form.save()
             return redirect("projects")
+        else:
+            staff = project.staff.all()
+            for i in staff:
+                i.position = Position.objects.get(pk=i.position_id)
         return render(request, "project_detail.html", {
             "form": form,
-            "staff": project.staff.all(),
+            "staff": staff,
             "id": project_id
         })
 def project_kick_staff(request, project_id, employee_id):
