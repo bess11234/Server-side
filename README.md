@@ -2119,3 +2119,4 @@ class Page(PermissionRequiredMixin, View):
 - AuthenticationForm(data=request.POST) อย่าลืม!
 - {% if perms.`<app>.<permission_codeName>` %}
 - {{ user.get_all_permissions }} บอก Permission ของ User ทั้งหมด
+- {{ user.groups.all }} บอกกลุ่มของ User
