@@ -1013,7 +1013,7 @@ value|dictsortreversed:"<Attribute>" # Likes dictsort but descending
 | U                 |  Seconds since the Unix Epoch | (January 1 1970 00:00:00 UTC).	 
 
 ## Tips
-- หากแก้ไข Javascript ที่อยู่ใน Static แล้วไม่ Update ให้ใช้ `Ctrl+F5` เพื่อรีเซ็ต Cookies
+- หากแก้ไข Javascript ที่อยู่ใน Static แล้วไม่ Update ให้ใช้ `Ctrl+F5` เพื่อรีเซ็ต Caches
 - ลองโยน Path จากคำสั่ง `{% url %}` เข้าเป็น Argument?
 
 # Week 9
@@ -1491,4 +1491,542 @@ class Test(View):
         return render(request, ".html", {
             "employees": employee
         })
+```
+
+## MIGRATE
+สามารถลบ MIGRATE ของ app ได้โดยใช้คำสั่ง
+```py
+py manage.py migrate <app> zero
+```
+สามารถใช้กับพวก auth, admin, contenttypes, sessions ได้
+
+## Authentication
+หากต้องการ Logout ให้ใช้ URL ที่มีชื่อเป็น logout ได้เลย แต่ต้องใช้ METHOD `POST`
+```py
+{% url 'logout' %}
+```
+โดยในการ Login/Logout จะสามารถตั้งตัวแปรในการกำหนด PATH หากสำเร็จ หรือไม่สำเร็จให้ Redirect ไปหา URL ที่ต้องได้อีกด้วย โดยกำหนดใน `setting.py`
+```py
+LOGOUT_REDIRECT_URL = "index"
+LOGIN_REDIRECT_URL = "index"
+LOGIN_URL = "login" # หากยังไม่ได้ Login จะเข้าไปหน้านี้
+```
+### Custom Model
+หากเรากำหนด `Custom user model` เองต้องมีการระบุให้ ระบบ รับรู้ด้วยผ่าน `setting.py`
+```py
+AUTH_USER_MODEL = "<app>.<customModel>"
+```
+โดยมีการ Custom อย่างนี้
+```py
+# models.py
+from django.contrib.auth.models import AbstractUser
+
+class Users(AbstractUser):
+    MANAGER = "mgr"
+    STAFF = "stf"
+    CUSTOMER = "cus"
+    ROLES = {CUSTOMER: "customer", STAFF: "staff", MANAGER: "manager"}
+    
+    username = models.CharField(max_length=50, blank=True, null=True, unique=False) # ของ AbstractUser
+    
+    first_name = models.CharField(max_length=50)
+    last_name = models.CharField(max_length=50)
+    email = models.CharField(max_length=255, unique=True) # Default email unique = False
+    phone = models.CharField(max_length=10)
+    
+    password = models.TextField()
+    role = models.CharField(choices=ROLES, default=CUSTOMER)
+    status = models.BooleanField(default=1) # 0=suspend 1=active
+    create_at = models.DateTimeField(auto_now_add = True)
+    reserveMachine = models.ManyToManyField("laundry_model.Machine", through="Reserve_Machine")
+    
+    objects = CustomUserManager()
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['first_name', 'last_name']
+    
+    def display_role(self):
+        return self.ROLES[self.role]
+```
+และเราต้องการเปลี่ยนการ login จาก usernmae เป็น email ต้องทำดังนี้
+```py
+from django.contrib.auth.models import BaseUserManager
+
+
+# Create your models here.
+class CustomUserManager(BaseUserManager):
+    def create_user(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError("The Email field must be set")
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save()
+        return user
+
+    def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+
+        return self.create_user(email, password, **extra_fields)
+```
+
+### Login
+หากต้องการกำหนดใน `views.py` แต่ละหน้าควบคุมเรื่องการเข้าระบบ โดยหากไม่ได้เข้าระบบต้องกลับไปยังที่ตั้งค่าใน `setting.py` LOGIN_URL สามารถใช้
+```py
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def profile(request):
+    return ...
+```
+แต่หากเราใช้ Class View ในการลิงค์แต่ละหน้าต้องมีการใช้
+```py
+from django.utils.decorators import method_decorator
+from django.views import View
+
+# หากกำหนดทั้ง Class จำเป็นต้องระบุ name ที่เป็นชื่่อ method (get, post, put, delete, dispatch)
+@method_decorator(login_required, name="<name>")
+class Profile(View):
+    def get(self, request):
+        return ...
+
+# เห็นว่าระดับ Function ไม่จำเป็นต้องระบุ name
+class Profile(View):
+    @method_decorator(login_required)
+    def get(self, request):
+        return ...
+```
+### Change password
+หากต้องการเปลี่ยนหน้าเว็บของ password_change ให้สร้างไฟล์ HTML ใน templates โดยกำหนดให้ชื่อ `registration/password_change_form.html` และเมื่อทำเสร็จต้องกำหนด App ที่มี templates นี้อยู่ขึ้นเหนื่อบนสุดของ `INSTALLED_APPS`
+```py
+INSTALLED_APPS = [
+    'laundry_user', # อันนี้
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'laundry',
+    'laundry_model',
+    'django_browser_reload'
+]
+```
+
+หากต้องการสร้าง Group ภายใน Project ต้องใช้
+
+[Doc Authenticate Group](https://docs.djangoproject.com/en/5.1/ref/contrib/auth/#group-model)
+```py
+from django.contrib.auth.models import Group, User
+Group.objects.create(name="<Name>")
+group.permissions.set([permission_list])
+group.permissions.add(permission, permission, ...)
+group.permissions.remove(permission, permission, ...)
+group.permissions.clear()
+
+user.groups.add(group)
+```
+
+# Week 12
+- [Doc Authenticate](https://docs.djangoproject.com/en/5.1/topics/auth/default/)
+- [Doc Permission](https://docs.djangoproject.com/en/5.1/topics/auth/default/#permissions-and-authorization)
+
+ทำเกี่ยวกับ Authenticate จะเห็นว่าการ Migrate จะมีตาราง `auth_user` มาให้ซึ่งนั้นก็คือตารางที่ไว้ทำการเข้าออกระบบ
+```py
+from django.contrib.auth.models import Group, User
+```
+โดย User จะมี Field ดังนี้
+- username
+- first_name
+- last_name
+- email
+- password
+- groups (M2M to model `Group`)
+- user_permissions (M2M to model `Permission`)
+- is_staff (สามารถเข้าใช้งาน Django Admin ได้)
+- is_superuser (สามารถเข้าใช้งาน Django Admin ได้ และ มีทุก permissions)
+- is_active
+- last_login
+- date_joined
+
+## Authentication
+[Doc Authenticate](https://docs.djangoproject.com/en/5.1/topics/auth/default/)
+### CREATE User
+หากต้องการสร้าง User ต้องทำดังนี้ โดย password ที่ใส่เข้าไป Django จะทำการ hash ไว้อยู่แล้ว
+```py
+from django.contrib.auth.models import User
+user = User.objects.create(username="", password="", email="")
+
+# OPTION
+user.last_name = ""
+user.save()
+```
+
+### CREATE superuser
+คล้าย ๆ Admin
+```py
+python manage.py createsuperuser --username=joe --email=joe@example.com
+# OR
+from django.contrib.auth.models import User
+user = User.objects.get(username="John")
+user.is_superuser = True
+user.save()
+```
+
+### Change password
+Django จะทำการ hash ให้อยู่แล้ว
+```py
+from django.contrib.auth.models import User
+u = User.objects.get(username="john")
+u.set_password("<password>")
+u.save()
+```
+หรือทำใน CLI โดยเมื่อใส่แล้วจะมีให้กรอก password ต่อ
+```py
+py manage.py changepassword <username>
+```
+หรือเปลี่ยนในหน้า UI ผ่าน Django Admin
+
+### Authenticate
+ทำการ Login/Sign in โดยจะมีให้กรอก username และ password
+```py
+from django.contrib.auth import authenticate
+user = authenticate(username="", password="")
+if user is not None:
+    # Login success
+else:
+    # Login failure
+```
+
+#### Ojbect user/annonymous user
+ทุกครั้งที่ทำการ `login()` สำเร็จ ทุกหน้าของ Django จะสามารถใช้ `request.user` เพื่อดึงข้อมูลจาก Field ภายใน User ออกมาได้ แต่หากเรายังไม่ได้ Authenticate `request.user` จะเป็น Object annonymous user โดยมีค่า Default ต่าง ๆ ดังนี้
+- id is always None.
+- username is always the empty string.
+- is_anonymous is True instead of False.
+- is_authenticated is False instead of True.
+- is_staff and is_superuser are always False.
+- is_active is always False.
+- groups and user_permissions are always empty.
+- set_password(), check_password(), save() and delete() raise NotImplementedError.
+
+เรายังสามารถเช็คแต่ละ `views.py` ได้ว่าเรานั้น `is_authenticated` แล้วหรือยังได้
+```py
+if request.user.is_authenticated:
+    ...
+else:
+    ...
+```
+
+### Login
+หากใช้คำสั่ง `login()` แล้วจะสามารถใช้ `request.user` ได้ทุกหน้า
+```py
+from django.contrib.auth import login
+
+def test_login(request):
+    username = request.POST.get("username")
+    password = request.POST.get("password")
+    user = authenticate(request, username=username, password=password)
+
+    if user is not None:
+        login(request, user)
+    else:
+        # Login failure
+```
+
+### Logout
+หากใช้ก็จะทำการ Reset ค่าของ `request.user` โดยจะกลายเป็น Anonymous user
+```py
+from django.contrib.auth import logout
+
+def test_logout(request):
+    logout(request)
+```
+
+### LIMIT ACCESS ONLY login user
+จำกัดหน้าที่เข้าได้เฉพาะ User ที่ Login แล้วเท่านั้นสามารถทำได้ 2 แบบ
+```py
+# Decorator (recommended)
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def page(request):
+    ...
+```
+```py
+# The raw way
+from django.conf import settings
+from django.shortcuts import redirect
+
+def my_view(request):
+    if not request.user.is_authenticated:
+        return redirect(f"{settings.LOGIN_URL}?next={request.path}")
+```
+#### login_required
+สิ่งที่มันจะทำหากเราไม่ได้ `login()` ก็คือจะ Redirect ไปตาม path ที่กำหนดไว้ใน `setting.py` โดยกำหนดใส่ตัวแปร `LOGIN_URL`
+```py
+# setting.py
+...
+LOGIN_URL = "index"
+```
+หรือเราสามารถกำหนด path เองได้เช่นกันโดย
+```py
+from django.contrib.auth.decorators import login_required
+
+@login_required(login_url="/user/login/")
+def page(request):
+    ...
+```
+แต่หากเราใช้ Class View จะไม่สามารถใช้ `login_required` โดยมีวิธี 2 แบบในการทำ
+
+ใช้ `method_decorator` ในการกำหนดให้ใช้ decorator `login_required`
+```py
+from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
+from django.views import View
+
+# @method_decorator(login_required, name="<method>")
+class Page(View):
+
+    @method_decorator(login_required(login_url="/user/login/"))
+    def get(self, request):
+        ...
+```
+ใช้ `LoginRequiredMixin` เข้าไปใน View
+```py
+from django.contrib.auth.mixins import LoginRequiredMixin
+
+class Page(LoginRequiredMixin, View):
+    login_url = "index" # "/user/login/" !ต้องกำหนด
+```
+
+### Forms Authentication
+Build-in Form ที่มากับ Django เราสามารถ import มาใช้ได้เลย
+
+#### Class AuthenticationForm
+Form ที่ใช้ในการ Login ตรวจเช็คข้อมูล Field โดยมีการเช็ค
+- username
+- password
+```py
+# AuthenticationForm - source
+class AuthenticationForm(forms.Form):
+    """
+    Base class for authenticating users. Extend this to get a form that accepts
+    username/password logins.
+    """
+
+    username = UsernameField(widget=forms.TextInput(attrs={"autofocus": True}))
+    password = forms.CharField(
+        label=_("Password"),
+        strip=False,
+        widget=forms.PasswordInput(attrs={"autocomplete": "current-password"}),
+    )
+```
+Example
+```py
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth import login
+
+def signin(request):
+    if request.method == "POST":
+        form = AuthenticationForm(data=request.POST)
+
+        if form.is_valid():
+            user = form.get_user() 
+            login(request, user)
+            return redirect('home')  
+    else:
+        form = AuthenticationForm()
+    return render(request,'signin.html', {"form":form})
+```
+
+#### Class UserCreationForm
+Form ที่ใช้ในการสร้าง User โดยมี Field ดังนี้
+- username
+- password1
+- password2 (Confirm password)
+```py
+from django.contrib.auth.forms import UserCreationForm
+  
+def register(request):  
+    if request.POST == 'POST':  
+        form = UserCreationForm(request.POST)  
+        if form.is_valid():  
+            form.save()  
+            messages.success(request, 'Account created successfully')  
+  
+    else:  
+        form = UserCreationForm()  
+        context = {  
+            'form':form  
+        }  
+    return render(request, 'register.html', context)  
+```
+
+#### Class PasswordChangeForm
+Form ที่ใช้ในการเปลี่ยน `password` มี Field ดังนี้
+- old_password
+- new_password1
+- new_password2
+```py
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth import update_session_auth_hash
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+
+@login_required
+def change_password(request):
+    if request.method == 'POST':
+        form = PasswordChangeForm(user=request.user, data=request.POST)
+
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)  # Important for keeping the user logged in
+            messages.success(request, 'Your password was successfully updated!')
+            return redirect('change_password')
+        else:
+            messages.error(request, 'Please correct the error below.')
+    else:
+        form = PasswordChangeForm(user=request.user)
+    return render(request, 'change_password.html', {'form': form})
+```
+
+## Permission
+[Doc Permission](https://docs.djangoproject.com/en/5.1/topics/auth/default/#permissions-and-authorization)
+
+ภายใน Django จะมีการเพิ่ม Permission อยู่สองระดับ
+1. ระดับ `Group` โดยแต่ละกลุ่มจะมี Permission แล้วใส่ User เข้าไปภายใน Group
+    - โดย Model User มี M-M relationship กับ Model Group (field User.groups)
+2. ระดับ `User` โดยแต่ละคนจะมี Permission เป็นของตัวเอง
+    - โดย Model User มี M-M Relationship กับ Model Permission (field User.user_permissions)
+
+โดย Django จะมีการทำ CRUD Operation ของแต่ละ APP ของแต่ละ Model ให้อัตโนมัติผ่าน Migrate เช่น
+- APP: `foo`
+- Model: `Employee`
+
+โดย Django จะเพิ่ม Permission โดยมี
+- `foo.view_employee`
+- `foo.add_employee`
+- `foo.change_employee`
+- `foo.delete_employee`
+
+และเราสามารถใช้คำสั่งต่อไปนี้เพื่อเพิ่ม/ลด Permission ได้
+```py
+# GROUP
+myuser.groups.set([group_list])
+myuser.groups.add(group, group, ...)
+myuser.groups.remove(group, group, ...)
+myuser.groups.clear()
+# USER
+myuser.user_permissions.set([permission_list])
+myuser.user_permissions.add(permission, permission, ...)
+myuser.user_permissions.remove(permission, permission, ...)
+myuser.user_permissions.clear()
+```
+
+### has_perm()
+- คำสั่งที่ใช้เพื่อเช็คว่ามี Permission หรือไม่ โดยภายใน Model User จะมี Funciton นี้อยู่แล้ว 
+- แต่ละอันคือ Codename ของ Permission ต่อจาก App_label
+- ใช้กับ `request.user` ได้เพราะเป็น Model User
+```py
+user.has_perm("foo.view_employee")
+user.has_perm("foo.add_employee")
+user.has_perm("foo.change_employee")
+user.has_perm("foo.delete_employee")
+```
+
+### Permission caching
+`get_object_or_404` ใช้แล้วหากหา object ไม่เจอจะ raise `Http404` instead of the model’s DoesNotExist exception
+```py
+from django.contrib.auth.models import Permission, User
+from django.contrib.contenttypes.models import ContentType
+from django.shortcuts import get_object_or_404
+
+from myapp.models import BlogPost
+
+def user_gain_perm(request):
+    user = get_object_or_404
+    # การเช็ค Permission ด้วย has_perm จะทำ cache Permission ไว้
+    user.has_perm("myapp.change_blogpost")
+    
+    # สร้าง Permission โดย Content คือ Model BlogPost
+    content_type = ContentType.objects.get_for_model(BlogPost)
+    permission = Permission.objects.get(
+        codename="change_blogpost",
+        content_type=content_type,
+    )
+    user.user_permissions.add(permission)
+
+    # หากทำการเช็ค Permission จะเห็นว่า Fail (เช็คที่ codename)
+    user.has_perm("myapp.change_blogpost")  # False
+
+    # หากดึงข้อมูล User ใหม่ Cache จะหาย
+    user = get_object_or_404(User, pk=user_id)
+
+    # Set of Permission cache จะถูกสร้าง จากการเช็ค Permission
+    user.has_perm("myapp.change_blogpost")  # True
+```
+
+### ER-Diagram ของความสัมพันธ์ User
+![alt text](./images/Week12-ERD_permission.png)
+
+### Custom Permission
+
+```py
+from myapp.models import BlogPost
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.auth.models import Permission
+
+# สร้าง Permission โดย Content คือ Model BlogPost
+content_type = ContentType.objects.get_for_model(BlogPost)
+permission = Permission.objects.get(
+    codename="change_blogpost",
+    content_type=content_type,
+)
+```
+
+### permission_required
+ใช้เมื่อต้องการให้จะเข้า `views.py` หรือ Function อะไรต้องมี Permission ที่ระบุก่อน
+- หากไม่มี permission จะ Redirect ไปที่ path ที่กำหนดใน `setting.py` ที่ตัวแปร LOGIN_URL
+```py
+from django.contrib.auth.decorators import permission_required
+
+@permission_required("foo.add_employee")
+def test(request):
+   ...
+
+# กรณีที่ต้องการกำหนด path ที่จะ redirect
+@permission_required("foo.add_employee", login_url="/loginpage/")
+def test(request):
+   ...
+
+# กรณีที่ไม่ต้องการให้ redirect แต่ให้ขึ้น 403 (HTTP Forbidden) แทน
+@login_required # เพื่อเช็คว่า User Login ยังจะได้ไม่ต้อง Redirect ไป Login
+@permission_required("foo.add_employee", raise_exception=True)
+def test(request):
+   ...
+```
+
+### PermissionRequiredMixin
+หากต้องการนำมาใช้กับ Model View ต้องใช้ Class นี้
+```py
+from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.views import View
+
+class Page(PermissionRequiredMixin, View):
+    permission_required = "foo.add_employee"
+    # Or multiple of permissions:
+    permission_required = ["foo.add_employee", "foo.change_employee"]
+```
+หากต้องการ Override Method ให้ประกาศ Function ภายใน Class ตามนี้
+- get_permission_required()
+- has_permission()
+
+### Template (Permission)
+ภายใน Django HTML เราสามารถเช็ค Permission ของ User ภายในเว็บได้โดยใช้
+```py
+{% if perm.foo.add_employee %}
+{% if perm.add_employee %} # หากไม่มี Model ที่ชื่อเหมือนกันในแต่ละ APP
+{% if user.is_authenticated %} # user สามารถใช้ภายใน Template ได้เลย
 ```
