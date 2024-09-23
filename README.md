@@ -2118,3 +2118,4 @@ class Page(PermissionRequiredMixin, View):
 - ?next="path" ใช้ต่อเมื่อหน้านั้นต้องการให้ Login แล้วเมื่อ Login แล้วมันจะเด้งเข้าหน้านั้นให้ (RECOMMENDED)
 - AuthenticationForm(data=request.POST) อย่าลืม!
 - {% if perms.`<app>.<permission_codeName>` %}
+- {{ user.get_all_permissions }} บอก Permission ของ User ทั้งหมด
