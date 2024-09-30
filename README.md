@@ -2122,7 +2122,7 @@ class Page(PermissionRequiredMixin, View):
 - {{ user.groups.all }} บอกกลุ่มของ User
 
 # Week 13
-## Request status
+## Request status (สอบ)
 กรณี Success จะมี HTTP status code ที่ใช้งานกันทั่วไปได้แก่
 
 - **200 Ok:** เป็นมาตรฐานของ HTTP response เพื่อบ่งบอกว่า request นั้น Success ใช้สำหรับ GET, PUT หรือ POST ก็ได้เช่นกัน
@@ -2140,3 +2140,544 @@ class Page(PermissionRequiredMixin, View):
 - **500 Internal Server Error:** เป็น response ที่บ่งบอกว่าการ request นั้นถูกต้องแล้ว แต่ server พังเอง ซึ่งอาจจะพังที่ตัวโค้ดของระบบเอง
 - **503 Service Unavailable:** เป็น response ที่บ่งบอกว่า server ใช้การไม่ได้ (ระบบพังนั่นเอง) โดย Server จะไม่สามารถรับ request ที่ส่งเข้ามาได้
 - **504 Bad Gateway Gateway Timeout:** เป็น response ที่บ่งบอกว่า web server อย่างพวก nginx หรือ apache พังนั้นเอง
+
+## INSTALL REST_FRAMEWORK
+```py
+pip install djangorestframework pygments
+```
+โดยใน `settings.py` ต้องกำหนด INSTALL_APPS และ DATABASE ที่จะใช้ด้วย
+```py
+INSTALL_APPS = [
+    ...,
+    'rest_framework',
+    ...
+]
+```
+## Serializers
+เหมือน Form แต่เราใช้ rest_framework ในการทำโดย
+- กำหนด def create, update ในการทำ Serializer
+```py
+# models.py
+from django import forms
+class Test(forms.Form):
+    test = forms.CharField(required=False, blank=True)
+
+# serializers.py
+from rest_framework import serializers
+class TestSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
+    test = serializers.CharField(required=False, read_only=True, allow_blank=True)
+
+    def create(self, validated_data):
+        return Test.objects.create(**validated_data)
+    def update(self, instance, validated_data):
+        instance.test = "eiei"
+        instance.save()
+        return instance
+```
+
+โดยเหมือน Form ที่มีฟังชั่น `clean` แต่ Serializer มีฟังชั่น `validate` โดยวิธีการใช้เหมือนกัน
+- หากอยากให้เด้ง Error สามารถใช้ `serializers.ValidationError` แทน
+```py
+from rest_framework import serializers
+# serializers.py
+...
+    def validate_test(self, value):
+        if value != 'eiei':
+            raise serializers.ValidationError("Error context")
+        return value
+    
+    def validate(self, data):
+        if data['test'] != "eiei":
+            raise serializers.ValidationError("Error context")
+        return data
+...
+```
+### JSON
+หากต้องการจะส่งข้อมูล ผ่านไปมาควรมีการทำ JSON render, JSON parse
+```py
+from <app>.models import Test
+from <app>.serializers import TestSerializer
+test = Test(test="eiei")
+test.save()
+test = Test(test="eiei2")
+test.save()
+
+from rest_framework.renderers import JSONRenderer
+from rest_framework.parsers import JSONParser
+serializer = TestSerializer(test)
+serializer.data
+# {'id': 1, 'test': 'eiei'}
+serializer = TestSerializer(data=test.data)
+serializer.is_valid()
+# True
+serializer.errors # IF
+# {'non_field_errors': [ErrorDetail(test='bra bra bra')]}
+```
+#### JSONRenderer
+```py
+content = JSONRenderer().render(serializer.data)
+content
+# b'{"id": 1, "test": "eiei"}'
+```
+#### JSONParser
+```py
+import io
+stream = io.BytesIO(content)
+data = JSONParser().parse(stream)
+# {'id': 1, 'test': 'eiei'}
+```
+#### Modify data to make a valid
+```py
+data['test'] = 'eieiei' # IF ERROR NEED TO
+serializer = SnippetSerializer(data=data)
+serializer.is_valid()
+serializer.validated_data
+# {'id': 1, 'test': 'eiei'}
+serializer.save()
+# <Test: Test object>
+```
+
+#### If have many instance
+ในกรณีที่เราต้องการ serialize ข้อมูลหลายๆ instance จะใช้ attribute `many=True`
+
+```python
+serializer = SnippetSerializer(Snippet.objects.all(), many=True)
+serializer.data
+# [{'id': 1, 'title': 'My code', 'code': 'foo = "bar"\n', 'linenos': 0, 'language': 'python', 'style': 'friendly'}, {'id': 2, 'title': 'Hello', 'code': 'print("hello, world")\n', 'linenos': 0, 'language': 'python', 'style': 'friendly'}, {'id': 3, 'title': 'Hello Django', 'code': 'print("hello, world")', 'linenos': 0, 'language': 'python', 'style': 'friendly'}]
+```
+
+## ModelSerializers
+เหมือนกันกับ `ModelForm`
+- สร้าง fields ให้อัตโนมัติ โดยไปเอามา model และนำมาแปลง
+- ทำการ implement `create()` และ `update()`
+```py
+class SnippetSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Snippet
+        fields = ['id', 'title', 'code', 'linenos', 'language', 'style']
+```
+
+หากทำใน `views.py` ตัวอย่าง
+```py
+from django.http import HttpResponse, JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.parsers import JSONParser
+from snippets.models import Snippet
+from snippets.serializers import SnippetSerializer
+
+@csrf_exempt # เนื่องจากเราจะใช้ POSTMAN ยิง API มาจะไม่ได้เป็นการ submit form ดังนั้นจะไม่มี csrf token แนบมาด้วย
+def snippet_list(request):
+    """
+    List all code snippets, or create a new snippet.
+    """
+    if request.method == 'GET':
+        snippets = Snippet.objects.all()
+        serializer = SnippetSerializer(snippets, many=True)
+        return JsonResponse(serializer.data, safe=False) # safe=False หมายความว่ามันไม่ใช่ dict
+
+    elif request.method == 'POST':
+        data = JSONParser().parse(request)
+        serializer = SnippetSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return JsonResponse(serializer.data, status=201)
+        return JsonResponse(serializer.errors, status=400)
+```
+```py
+...
+
+@csrf_exempt
+def snippet_detail(request, pk):
+    """
+    Retrieve, update or delete a code snippet.
+    """
+    try:
+        snippet = Snippet.objects.get(pk=pk)
+    except Snippet.DoesNotExist:
+        return HttpResponse(status=404)
+
+    if request.method == 'GET':
+        serializer = SnippetSerializer(snippet)
+        return JsonResponse(serializer.data)
+
+    elif request.method == 'PUT':
+        data = JSONParser().parse(request)
+        serializer = SnippetSerializer(snippet, data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return JsonResponse(serializer.data)
+        return JsonResponse(serializer.errors, status=400)
+
+    elif request.method == 'DELETE':
+        snippet.delete()
+        return HttpResponse(status=204)
+```
+
+## Serializer Relation
+[Doc](https://www.django-rest-framework.org/api-guide/relations/#serializer-relations)
+
+ข้อมูลที่มีความสัมพันธ์แบบ One-One, One-Many, Many-Many สามารถ Serialize ข้อมูลที่มีความสัมพันธ์ออกมาได้เช่นกัน
+
+สมมติเรามี model `Album` และ `Track` สังเกตว่า `Track` มี FK ไปหา `Album` ดังนั้นทั้ง 2 models นี้มีความสัมพันธ์กันแบบ one-to-many
+
+```python
+class Album(models.Model):
+    album_name = models.CharField(max_length=100)
+    artist = models.CharField(max_length=100)
+
+class Track(models.Model):
+    album = models.ForeignKey(Album, related_name='tracks', on_delete=models.CASCADE)
+    order = models.IntegerField()
+    title = models.CharField(max_length=100)
+    duration = models.IntegerField()
+
+    class Meta:
+        unique_together = ['album', 'order']
+        ordering = ['order']
+
+    def __str__(self):
+        return '%d: %s' % (self.order, self.title)
+```
+
+### StringRelatedField
+
+จะแสดงผลข้อมูล `__str__` method ดังตัวอย่าง
+
+```python
+class AlbumSerializer(serializers.ModelSerializer):
+    tracks = serializers.StringRelatedField(many=True)
+
+    class Meta:
+        model = Album
+        fields = ['album_name', 'artist', 'tracks']
+```
+
+ผลที่ได้จาก `serializer.data` จะเป็นดังนี้
+
+```python
+{
+    'album_name': 'Things We Lost In The Fire',
+    'artist': 'Low',
+    'tracks': [
+        '1: Sunflower',
+        '2: Whitetail',
+        '3: Dinosaur Act',
+        ...
+    ]
+}
+```
+
+### PrimaryKeyRelatedField
+
+จะแสดงข้อมูล primary key ของตารางที่เกี่ยวข้อง
+
+```python
+class AlbumSerializer(serializers.ModelSerializer):
+    tracks = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+
+    class Meta:
+        model = Album
+        fields = ['album_name', 'artist', 'tracks']
+```
+
+ผลที่ได้จาก `serializer.data` จะเป็นดังนี้
+
+```python
+{
+    'album_name': 'Things We Lost In The Fire',
+    'artist': 'Low',
+    'tracks': [
+        89,
+        90,
+        91,
+        ...
+    ]
+}
+```
+
+### Nested relationships
+
+ในกรณีที่เราจ้องการแสดงข้อมูลที่เกี่ยวข้องเป็น list of objects เป็น nested ลงไปเราสามารถทำได้โดยการประกาศ `Serialier` ของ object ที่เกี่ยวข้องนั้นๆ และนำมาเรียกใช้เป็น field ดังตัวอย่าง
+
+**Note:** ในกรณีที่เราอยู่ในฝั่ง one สำหรับ one-to-many จะต้องใช้ `many=True` นะครับ
+
+```python
+class TrackSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Track
+        fields = ['order', 'title', 'duration']
+
+class AlbumSerializer(serializers.ModelSerializer):
+    tracks = TrackSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Album
+        fields = ['album_name', 'artist', 'tracks']
+```
+
+โดย `AlbumSerializer` จะแสดงผลดังนี้
+
+```python
+album = Album.objects.create(album_name="The Grey Album", artist='Danger Mouse')
+Track.objects.create(album=album, order=1, title='Public Service Announcement', duration=245)
+# <Track: Track object>
+Track.objects.create(album=album, order=2, title='What More Can I Say', duration=264)
+# <Track: Track object>
+Track.objects.create(album=album, order=3, title='Encore', duration=159)
+# <Track: Track object>
+serializer = AlbumSerializer(instance=album)
+serializer.data
+#{
+#    'album_name': 'The Grey Album',
+#    'artist': 'Danger Mouse',
+#    'tracks': [
+#        {'order': 1, 'title': 'Public Service Announcement', 'duration': 245},
+#        {'order': 2, 'title': 'What More Can I Say', 'duration': 264},
+#        {'order': 3, 'title': 'Encore', 'duration': 159},
+#    ],
+#}
+```
+
+#### เรามาลองทำ tutorial ของเรากันต่อ
+
+ทำการเพิ่ม model `SnippetCategory` เข้าไป และเพิ่ม FK ไปใน model `Snippet` ดังนี้
+
+```python
+# snippets/models.py
+...
+class SnippetCategory(models.Model):
+    name = models.CharField(max_length=100)
+
+
+class Snippet(models.Model):
+    created = models.DateTimeField(auto_now_add=True)
+    title = models.CharField(max_length=100, blank=True, default='')
+    code = models.TextField()
+    linenos = models.IntegerField(default=0)
+    language = models.CharField(choices=LANGUAGE_CHOICES, default='python', max_length=100)
+    style = models.CharField(choices=STYLE_CHOICES, default='friendly', max_length=100)
+    category = models.ForeignKey(SnippetCategory, null=True, on_delete=models.CASCADE)
+
+    class Meta:
+        ordering = ['created']
+```
+
+ทำการเพิ่ม `SnippetCategorySerializer` ไปใน `snippets/serialziers.py`
+
+```python
+from rest_framework import serializers
+from snippets.models import Snippet, SnippetCategory
+
+class SnippetCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SnippetCategory
+        fields = ['id', 'name']
+
+class SnippetSerializer(serializers.ModelSerializer):
+    category = SnippetCategorySerializer()
+
+    class Meta:
+        model = Snippet
+        fields = ['id', 'title', 'code', 'linenos', 'language', 'style', 'category']
+```
+
+ทดสอบการใช้งาน API ด้วย POSTMAN App
+
+#### มาลองใช้งาน many=True กัน
+
+ปรับเพิ่มข้อมูลของ Snippet ที่เกี่ยวข้องใน `SnippetCategorySerializer` ดังนี้
+
+```python
+from rest_framework import serializers
+from snippets.models import Snippet, SnippetCategory
+
+class SnippetSerializer(serializers.ModelSerializer):
+    category = serializers.PrimaryKeyRelatedField(read_only=True)
+
+    class Meta:
+        model = Snippet
+        fields = ['id', 'title', 'code', 'linenos', 'language', 'style', 'category']
+
+class SnippetCategorySerializer(serializers.ModelSerializer):
+    snippet_set = SnippetSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = SnippetCategory
+        fields = ['id', 'name', 'snippet_set']
+```
+
+เพิ่ม path และ view สำหรับ GET list ของ `SnippetCategory`
+
+```python
+# snippets/urls
+from django.urls import path
+from snippets import views
+
+urlpatterns = [
+    path('snippets/', views.snippet_list),
+    path('snippets/<int:pk>/', views.snippet_detail),
+    path('categories/', views.category_list),
+]
+```
+
+และ เพิ่ม view ใน `snippets/views.py`
+
+```python
+...
+from snippets.models import Snippet, SnippetCategory
+from snippets.serializers import SnippetSerializer, SnippetCategorySerializer
+...
+def category_list(request):
+    """
+    List all snippet categories.
+    """
+    if request.method == 'GET':
+        categories = SnippetCategory.objects.all()
+        serializer = SnippetCategorySerializer(categories, many=True)
+        return JsonResponse(serializer.data, safe=False) # safe=False หมายความว่ามันไม่ใช่ dict
+```
+
+ทดสอบการใช้งาน API ด้วย POSTMAN App
+
+#### หากต้องการทำอัพเดท
+```py
+instance = Snippet.objects.get(pk=1)
+serializer = SnippetSerializer(data=data, instance=instance)
+#or
+serializer = SnippetSerializer(instance, data=data)
+serializer.is_valid()
+serializer.save() # จะอัพเดทเสร็จสิ้น
+```
+
+## APIVIEW
+REST framework มี wrapper 2 ตัวที่ช่วยให้การเขียนโค้ดง่ายขึ้น
+1. `@api_view` ซึ่งเป็น decorator ที่ใช้สำหรับกรณี function-based views
+2. class `APIView` ซึ่งจะใช้สำหรับกรณี class-based views
+
+ลองแก้ไขหน้า `views.py`
+```py
+from rest_framework import status
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from snippets.models import Snippet
+from snippets.serializers import SnippetSerializer
+
+@api_view(['GET', 'POST'])
+def snippet_list(request):
+    """
+    List all code snippets, or create a new snippet.
+    """
+    if request.method == 'GET':
+        snippets = Snippet.objects.all()
+        serializer = SnippetSerializer(snippets, many=True)
+        return Response(serializer.data)
+
+    elif request.method == 'POST':
+        serializer = SnippetSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+```
+จะเห็นว่าใช้แค่ Response ได้เลย โดยใส่แค่
+- serializer.data
+- status=status.HTTP_**
+
+```py
+@api_view(['GET', 'PUT', 'DELETE'])
+def snippet_detail(request, pk):
+    """
+    Retrieve, update or delete a code snippet.
+    """
+    try:
+        snippet = Snippet.objects.get(pk=pk)
+    except Snippet.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        serializer = SnippetSerializer(snippet)
+        return Response(serializer.data)
+
+    elif request.method == 'PUT':
+        serializer = SnippetSerializer(snippet, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    elif request.method == 'DELETE':
+        snippet.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+```
+**Important:** สังเกตดูว่าข้อมูลที่ส่งมาจาก client จะถูกเก็บอยู่ใน `request.data` ซึ่งจะช่วยเราจัดการข้อมูลที่ส่งมาจาก client ในรูปแบบ `json`
+
+### Class-based Views
+```py
+from snippets.models import Snippet
+from snippets.serializers import SnippetSerializer
+from django.http import Http404
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+
+class SnippetList(APIView):
+    """
+    List all snippets, or create a new snippet.
+    """
+    def get(self, request, format=None):
+        snippets = Snippet.objects.all()
+        serializer = SnippetSerializer(snippets, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, format=None):
+        serializer = SnippetSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class SnippetDetail(APIView):
+    """
+    Retrieve, update or delete a snippet instance.
+    """
+    def get_object(self, pk):
+        try:
+            return Snippet.objects.get(pk=pk)
+        except Snippet.DoesNotExist:
+            raise Http404
+
+    def get(self, request, pk, format=None):
+        snippet = self.get_object(pk)
+        serializer = SnippetSerializer(snippet)
+        return Response(serializer.data)
+
+    def put(self, request, pk, format=None):
+        snippet = self.get_object(pk)
+        serializer = SnippetSerializer(snippet, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk, format=None):
+        snippet = self.get_object(pk)
+        snippet.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+```
+อย่าลืมว่าถ้าเราเปลี่ยนมาใช้ class-based views แล้วจะต้องไปแก้ไข `urls.py` 
+
+
+```python
+from django.urls import path
+from snippets import views
+
+urlpatterns = [
+    path('snippets/', views.SnippetList.as_view()),
+    path('snippets/<int:pk>/', views.SnippetDetail.as_view()),
+]
+```
+
+## TIPS
+- JsonResponse(data,safe=False) หมายความว่า data มันไม่ใช่ dict
