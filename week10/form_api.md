@@ -113,6 +113,10 @@ f = ContactForm(data)
 f.is_valid() # True
 print(f.cleaned_data)
 {'cc_myself': True, 'message': 'Hi there', 'sender': 'foo@example.com', 'subject': 'hello'}
+print(f.cleaned_data['cc_myself'])
+print(f.cleaned_data.get('cc_myself'))
+print(f.changed_data)
+['cc_myself', 'message']
 ```
 
 ## Outputting forms as HTML
@@ -131,6 +135,7 @@ print(f)
 เราสามารถ render form ใน template ได้หลายรูปแบบ
 
 - `as_div()` (เป็นตัวเลือก default)
+- `f = ContactForm(data).as_div()`
 
 ```html
 <div>
@@ -152,6 +157,7 @@ print(f)
 ```
 
 - `as_p()`
+- `f = ContactForm(data).as_p()`
 
 ```html
 <p>
@@ -173,6 +179,7 @@ print(f)
 ```
 
 - `as_ul()`
+- `f = ContactForm(data).as_ul()`
 
 ```html
 <li>
@@ -194,6 +201,7 @@ print(f)
 ```
 
 - `as_table()`
+- `f = ContactForm(data).as_table()`
 
 ```html
 <tr>

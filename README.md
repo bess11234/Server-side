@@ -2120,3 +2120,23 @@ class Page(PermissionRequiredMixin, View):
 - {% if perms.`<app>.<permission_codeName>` %}
 - {{ user.get_all_permissions }} บอก Permission ของ User ทั้งหมด
 - {{ user.groups.all }} บอกกลุ่มของ User
+
+# Week 13
+## Request status
+กรณี Success จะมี HTTP status code ที่ใช้งานกันทั่วไปได้แก่
+
+- **200 Ok:** เป็นมาตรฐานของ HTTP response เพื่อบ่งบอกว่า request นั้น Success ใช้สำหรับ GET, PUT หรือ POST ก็ได้เช่นกัน
+- **201 Created:** เป็น response เพื่อบ่งบอกว่าข้อมูลใหม่ได้ถูกสร้างขึ้นสำเร็จ ใช้สำหรับ POST
+- **204 No Content:** เป็น response สำหรับบ่งบอกดำเนินการ Success แต่ไม่ได้ return ข้อมูลกลับ ส่วนใหญ่จะใช้กรณีลบข้อมูล DELETE ที่ไม่ได้ส่ง response ที่เป็นข้อมูลกลับไป
+
+กรณี Error จะมี HTTP status code ที่ใช้งานกันทั่วไปได้แก่
+
+- **400 Bad Request:** เป็น general error ก็ว่าได้ status นี้จะบ่งบอกว่า request ที่ส่งมาโดย client นั้นไม่มี action ใดๆ และ Server ไม่เข้าใจ เช่น JSON ผิด หรือ parameters ไม่ถูกต้อง
+- **401 Unauthorized:** เป็น response ที่บ่งบอกว่า client ไม่ได้รับอนุญาตในการเข้าถึง อาจจะเป็นกรณีที่ใส่ token ผิด หมดอายุ หรือไม่ได้แนบ token มา
+- **403 Forbidden:** เป็น response ที่บ่งบอกว่า client ได้รับการอนุญาตในการเข้าถึงระบบ (login ผ่าน)แต่จะมีข้อมูลบางหน้า ที่ไม่มีสิทธิ์ในการเข้าถึง
+- **404 Not Found:** เป็น response ที่บ่งบอกว่า request นั้นไม่ว่างใช้งานตอนนี้ หรือ request ที่เรียกนั้นไม่มีอยู่ในระบบ
+- **405 Gone:** เป็น response ที่บ่งบอกว่า resource ที่ต้องการนั้นไม่มี หรือถูกย้ายไป
+- **429 Too many Request:** เป็น response ที่บ่งบอกว่า request นั้นติด limit ใช้กรณีที่เรากำหนด rate limit ไว้ว่า API นั้นๆจะสามารถเรียกได้กี่ครั้ง
+- **500 Internal Server Error:** เป็น response ที่บ่งบอกว่าการ request นั้นถูกต้องแล้ว แต่ server พังเอง ซึ่งอาจจะพังที่ตัวโค้ดของระบบเอง
+- **503 Service Unavailable:** เป็น response ที่บ่งบอกว่า server ใช้การไม่ได้ (ระบบพังนั่นเอง) โดย Server จะไม่สามารถรับ request ที่ส่งเข้ามาได้
+- **504 Bad Gateway Gateway Timeout:** เป็น response ที่บ่งบอกว่า web server อย่างพวก nginx หรือ apache พังนั้นเอง

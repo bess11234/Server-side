@@ -15,12 +15,14 @@ class Article(models.Model):
 
 # ----------------------
 # forms.py
-from django.forms import ModelForm
+from django import forms
 from myapp.models import Article
-class ArticleForm(ModelForm):
+class ArticleForm(forms.ModelForm):
     class Meta:
         model = Article
         fields = ["pub_date", "headline", "content"]
+        # fields = "__all__"
+    pub_date = forms.DatetimeField(widget=forms.DateTimeInput(attrs={"type": "datetime-local"}))
 ```
 
 ### Field types
@@ -146,6 +148,7 @@ class BookForm(forms.Form):
 
 # Create a form instance from POST data.
 >>> f = ArticleForm(request.POST)
+>>> f.is_valid() # True
 
 # Save a new Article object from the form's data.
 >>> new_article = f.save()
@@ -162,12 +165,13 @@ class BookForm(forms.Form):
 เราสามารถ overwrite ค่า attribute ที่ถูกกำหนดใน field ของ model ได้เช่น อยากจะเป็น widget ของ CharField ไปใช้เป็น Textarea เป็นต้น
 
 ```python
-class AuthorForm(ModelForm):
+from django import forms
+class AuthorForm(forms.ModelForm):
     class Meta:
         model = Author
         fields = ["name", "title", "birth_date"]
         widgets = {
-            "name": Textarea(attrs={"cols": 80, "rows": 20}),
+            "name": forms.Textarea(attrs={"cols": 80, "rows": 20}),
         }
 
 # หรือ overwrite ค่า attriute อื่นๆ 
