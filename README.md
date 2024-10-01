@@ -2679,5 +2679,66 @@ urlpatterns = [
 ]
 ```
 
+## Exercise
+ข้อสังเกตุที่เห็นจากการทำ INSERT, UPDATE ข้อมูลภายใน DATABASE จากการทำ Serializer ต้องมีการใส่ data= ให้มัน
+```py
+# INSERT
+serializer = AppointmentSerializer(data=request.data)
+if serializer.is_valid():
+    serializer.save()
+    return Response(serializer.data, status=status.HTTP_200_OK)
+return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# UPDATE
+serializer = AppointmentSerializer(appoints, data=request.data)
+if serializer.is_valid():
+    serializer.save()
+    return Response(serializer.data, status=status.HTTP_200_OK)
+return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+```
+ต่างกับการ SELECT ที่ให้ข้อมูลกับ Serializer
+```py
+# SELECT
+from rest_framework.response import Response
+appoint = Appointment.objects.all()
+serializer = AppointmentSerializer(appoint, many=True)
+return Response(serializer.data)
+```
+
+หากต้องการจะทำ API ต้องมีการใส่ Decorator `csrf_exempt` หากเราไม่ใช้ ModelSerializer
+```py
+from django.views.decorators.csrf import csrf_exempt
+@csrf_exempt
+def test(request):
+    ...
+```
+
+หากต้องการทำ POST ที่มีการ INSERT ข้อมูลที่มี Foeign key จำเป็นต้องไปแก้ Serializer ให้รับข้อมูล และแสดงข้อมูลต่างกันเช่น
+- จะเห็นว่าเราแยก read กับ write ของ doctor, patient ออกจากกัน
+- เวลาส่งข้อมูล doctor, patient สามารถใช้ ID ได้เลย
+- source คือลิงค์กับ Field ไหนใน Model
+```py
+# models.py
+class Appointment(models.Model):
+    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name="doctor_id")
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name="patient_id")
+    date = models.DateField()
+    at_time = models.TimeField()
+    details = models.TextField(null=True, blank=True)
+
+# serializers.py
+class AppointmentSerializer(serializers.ModelSerializer):
+    display_doctor = DoctorSerializer(source="doctor", read_only=True)
+    display_patient = PatientSerializer(source="patient", read_only=True)
+
+    class Meta:
+        model = Appointment
+        fields = ["id", "doctor", "display_doctor", "patient", "display_patient", "date", "at_time", "details"]
+        extra_kwargs = {
+            'doctor': {'write_only': True},
+            'patient': {'write_only': True},
+        }
+```
+
 ## TIPS
 - JsonResponse(data,safe=False) หมายความว่า data มันไม่ใช่ dict
