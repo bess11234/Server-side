@@ -36,7 +36,6 @@ def viewfunc(request):
 วิธีที่ถูกต้องถ้าเราต้องการ catch exception คือ
 
 ```python
-@transaction.atomic
 def viewfunc(request):
     create_parent()
 

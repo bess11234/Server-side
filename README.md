@@ -2742,3 +2742,36 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
 ## TIPS
 - JsonResponse(data,safe=False) หมายความว่า data มันไม่ใช่ dict
+
+## Devtool Project
+ถ้า `models.py` มี `ManyToManyField` ทำให้เวลาส่ง JSON ต้องเป็นงี้
+```json
+{
+	"user": [1, ..., ],
+	"name": "test Family"
+}
+```
+### Authenticate
+หากต้องการให้แต่ละ APIView จำเป็นต้อง Authenticate จาก Permission ให้แก้
+```py
+# setting.py
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+    ],
+}
+
+# views.py
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+class FamilyAction(APIView):
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    
+    # Get one family
+    def get(self, request, pk):
+        family = get_object_or_404(Family, pk=pk)
+        serializer = FamilySerializer(family)
+        return Response(serializer.data)
+    
+    # def post(self, request, pk):
+```

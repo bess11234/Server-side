@@ -28,7 +28,7 @@
 4. **Failed:** If a transaction fails or has been aborted in the active state or partially committed state, it enters into a failed state.
 5. **Terminated state:** This is the last and final transaction state after a committed or aborted state. This marks the end of the database transaction life cycle.
 
-![states](/images/database-transaction-2.png)
+![states](./images/database-transaction-2.png)
 
 ### What are ACID properties, and why are they important?
 
