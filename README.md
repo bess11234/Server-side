@@ -2775,3 +2775,309 @@ class FamilyAction(APIView):
     
     # def post(self, request, pk):
 ```
+
+# Week 14
+## Debug
+หากทำการสร้าง Virtual Environment แล้วไม่ขึ้น Suggestions จาก Pylance เวลา Import
+- ลองกดที่ VSCode ที่บนสุด เขียน `>environment` เลือก `venv`
+
+หากต้องการจะทำ API ต้องมีการใส่ Decorator `csrf_exempt` หากเราไม่ใช้ ModelSerializer
+```py
+from django.views.decorators.csrf import csrf_exempt
+@csrf_exempt
+def test(request):
+    ...
+```
+```py
+class UserList(APIView):
+    def get(self, request):
+        users = User.objects.all()
+        serializer = UserSerializer(users, many=True)
+        return Response(serializer.data)
+```
+## API Authentication
+### Token
+เพราะ API Server เป็น Stateless ทำให้เวลาเรา Request ไปหา Server จะไม่รู้ว่าเราเป็นใคร หากต้องการให้รู้จะต้องแนบ Token ไว้
+- หากทำ Login กับ API server จะมีการเก็บข้อมูล Token ไว้ Database และส่งมาให้เรา
+- หากเราส่ง Token นั้นให้ API server มันก็จะรู้ว่าเราเป็นใคร
+
+โดยหากจะทำการ Authenticate ต้องแนบ Token ผ่าน Headers
+```
+Authorization: Token 9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b
+```
+- ต้องรวมคำว่า `Token` ไว้ด้วย และเว้นวรรคตามด้วย Token
+
+ตัวอย่าง
+![alt text](./images/week14_1.png)
+
+โดยตัว token จะต้องนำหน้าด้วย keyword "Token" แต่ถ้าอยากเปลี่ยนเป็น keyword อื่นเช่น "Bearer" ก็สามารถทำได้โดยการ subclass TokenAuthentication และแก้ไข class variable `keyword`
+
+โดยถ้า authenticate สำเร็จ ใน view เราจะได้ credentials ดังนี้
+
+- `request.user` ซึ่งจะเป็น Django User instance
+- `request.auth` ซึ่งจะเป็น rest_framework.authtoken.models.Token instance
+#### Install
+ต้องกำหนด `rest_framework.authtoken` ใน INSTALLED_APPS
+### Generate Token
+การทำทั้ง 3 วิธีนี้จะเป็นการใส่ Token ให้ Database โดยอัตโนมัติ
+- สามารถทำได้ที่หน้า Admin โดยหากเราใส่ INSTALLED_APPS ด้วย `rest_framework.authtoken`
+- สามารถทำได้โดยใช้คำสั่ง `python manage.py drf_create_token <username>`
+- สามารถใช้ผ่าน API ที่เขามีให้อยู่แล้วโดย
+```py
+# main_app/urls.py
+from django.contrib import admin
+from django.urls import path, include
+from rest_framework.authtoken import views
+
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    path("api-token-auth/", views.obtain_auth_token), # อันนี้
+]
+```
+โดยหากต้องการ Generate ผ่าน API ต้องส่งข้อมูล
+```json
+{
+    "username": "",
+    "password": ""
+}
+```
+และได้จะข้อมูล Token ดังนี้
+```json
+{ "token" : "9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b" }
+```
+### Custom Keyword 'Token' ของ TokenAuthenitcation
+เปลี่ยนคำว่า token เป็นอย่างอื่นให้เขียน TokenAuthenitcation ขึ้นมาใหม่ ภายใน `views.py`
+```py
+from rest_framework.authentication import TokenAuthentication
+...
+class MyTokenAuthentication(TokenAuthentication):
+    keyword = "Bearer"
+class SnippetList(APIView):
+    authentication_classes = [MyTokenAuthentication]
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    ...
+```
+
+## Permission
+ทำได้ 2 แบบ ให้ทำแบบใดแบบหนึ่ง
+```py
+# views.py
+class SnippetList(APIView):
+    authentication_classes = [SessionAuthentication, BaseAuthentication] # TokenAuthentication
+    permission_classes = [IsAuthenticated]
+    """
+    List all snippets, or create a new snippet.
+    """
+    def get(self, request, format=None):
+        snippets = Snippet.objects.all()
+        serializer = SnippetSerializer(snippets, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, format=None):
+        serializer = SnippetSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(owner=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+```
+หรือ
+```py
+# settings.py
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        # 'rest_framework.authentication.TokenAuthentication',
+    ]
+}
+```
+### Note
+- หากมีการกำหนด authenticate_classes แต่ไม่ได้มีการกำหนด permission_classes ใครเข้าถึง GET ก็ได้ แต่ไม่น่าจะเข้าถึง POST, PUT, DELETE
+
+### Custom Permissions
+เป็นการเพิ่ม Permission ที่มีอยู่แต่เดิมของ rest_framework โดยเราจะใช้ permission ที่มีอยู่แต่เดิมของ Django
+```py
+# app/permissions.py
+from rest_framework import permissions
+
+class CustomPermission(permissions.BasePermission):
+    """
+    Object-level permission to only allow owners of an object to edit and delete it.
+    """
+
+    def has_permission(self, request, view):
+        # SAFE_METHODS = GET, HEAD or OPTIONS
+        if request.method in permissions.SAFE_METHODS:
+            return request.user.has_perm("app.view_model")
+        elif request.method == "POST":
+            return request.user.has_perm("app.add_model")
+        elif request.method == "PUT":
+            return request.user.has_perm("app.change_model")
+        elif request.method == "DELETE":
+            return request.user.has_perm("app.delete_model")
+        return False
+    
+    def has_object_permission(self, request, view, obj):
+        if request.method == "PUT":
+            return request.user.has_perm("app.change_model") and obj.created_by == request.user
+        elif request.method == "DELETE":
+            return request.user.has_perm("app.delete_model") and obj.created_by == request.user
+        return False
+```
+ใช้งานได้ภายใน `views.py` ดังนี้
+```py
+...
+class CustomList(APIView):
+    authentication_classes = [MyTokenAuthentication]
+    permission_classes = [IsAuthenticated, CustomPermission]
+...
+class CustomDetail(APIView):
+    authentication_classes = [MyTokenAuthentication]
+    permission_classes = [IsAuthenticated, CustomPermission]
+...
+```
+>**Note**: list ของ permission_classes จะ support & (and), | (or) and ~ (not) ดังตัวอย่าง `permission_classes = [IsAuthenticated|ReadOnly]`
+
+#### NOTE
+- ใน BasePermission ฟังชั่น `has_objects_permission` จะทำการเช็คโดยใช้ฟังชั่น `check_object_permissions(request, object)` จาก APIView
+- ฉนั้น APIView เรียกใช้ `self.check_object_permissions(request, object)` โดย object คือ object ที่จะใช้ตรวจสอบ
+
+## JWT (JSON Web Token) สอบ
+- Token ประเภทหนึ่ง เพื่อให้ Backend รู้ว่าใครเป็นใคร
+- นอกจากใช้ในการระบุว่าเราเป็นใคร สามารถแนบข้อมูลเพิ่มเติมได้อีกเช่น (อายุ, วันเกิด, หมาชื่ออะไร)
+- โดยที่พิเศษคือ JWT มีข้อมูลที่อยู่ใน Token อยู่แล้ว ข้อดีคือ Backend ได้แค่ Token แต่เข้าถึงข้อมูลผู้ใช้ได้ครบถ้วน
+- JWT ขนาดไม่เยอะ ทำให้เวลาส่งข้อมูลจะไม่หนัก Payload ของเครื่อง
+
+JWT ประกอบด้วย 3 ส่วน
+1. Header
+โดย Header มักประกอบด้วย 2 ส่วนคือ
+    - Header จะถูกเข้ารหัสด้วย Base64Url
+```json
+{
+    "alg": "HS256",
+    "typ": "JWT"
+}
+```
+2. Payload
+    - เป็นส่วนของ 'claims' ซึ่งหมายถึงข้อมูล User และ Metadata
+    - Claims มี 3 ประเภท 
+        - **Reversed claims**: ซึ่งเป็นชื่อ properties ที่ถูกสงวนไว้ ยกตัวอย่างเช่น **iss** (issuer), **exp** (expiration time), **sub** (subject), **aud** (audience) - *ข้อมูลพวกนี้ไม่จำเป็น (not mandatory)*
+        - **Public claims**: ซึ่งเป็นชื่อ properties ที่ถูกกำหนดไว้ใน list [IANA JSON Web Token Registry](https://www.iana.org/assignments/jwt/jwt.xhtml#claims)
+        - **Private claims**: ซึ่งเป็นชื่อ properties ที่กำหนดเอง
+        ```json
+        {
+            "sub": "1234567890",
+            "name": "John Doe",
+            "admin": true
+        }
+        ```
+    - หากเข้าไปดูใน Public claims จะเป็นมาตรฐานในการกำหนดข้อมูลที่ใช้รวมกัน ทำให้คนอื่นสามารถเข้ามาอ่านแล้วเข้าใจ
+    - ถูกเข้ารหัสด้วย **Base64Url**
+    - ไม่ควรใส่ข้อมูลที่ Sensitive หรือเป็นความลับ หากจะใส่ต้อง Encrypted
+3. Signature
+    
+    ในการสร้างส่วน `Signature` เราจะต้องนำส่วน encoded header, encoded payload, secret, algorithm ที่กำหนดใน header มารวมกันแล้วทำการ sign ดังตัวอย่าง
+
+โดยมันจะคั่นด้วย `.` ดังรูป
+```js
+HMACSHA256(
+  base64UrlEncode(header) + "." +
+  base64UrlEncode(payload),
+  secret)
+```
+![jwt](./week14/images/jwt.png)
+
+### Install
+1. เริ่มต้นด้วยการติดตั้งด้วยคำสั่ง `pip install djangorestframework-simplejwt`
+2. เพิ่มการตั้งค่าใน `settings.py`
+```python
+INSTALLED_APPS = [
+    ...
+    "rest_framework_simplejwt"
+]
+REST_FRAMEWORK = {
+    ...
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        ...
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ]
+    ...
+}
+```
+
+3. ไปเพิ่ม path ในไฟล์ `urls.py` ตัวหลัก
+
+```python
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+
+urlpatterns = [
+    ...
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    ...
+]
+```
+
+4. ทดลองใช้งานโดยใช้ Postman ยิง POST request ไปที่ `http://127.0.0.1:8000/api/token/` จะได้รับ token กลับมา
+    - access อายุสั้น (นาที) (ใช้อันนี้)
+    - refresh อายุยาว (วัน) (ใช้เพื่อทำการ refresh token หาก access หมดอายุ)
+```json
+{
+    "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTcyNzk3NTMwMywiaWF0IjoxNzI3ODg4OTAzLCJqdGkiOiI3NjJiODgwZTJmZmI0YTcxOGY4Y2U1ODA4YWI2MzgzNCIsInVzZXJfaWQiOjJ9.2qJTmGQdrB5-BLMj6gGbpE_PW_N3RrprggQfamj3zXk",
+    "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzI3ODg5MjAzLCJpYXQiOjE3Mjc4ODg5MDMsImp0aSI6IjFiNjY0N2E3OWU3MjQzMjc5NWNiMWMzMGQ2NTFiNzQyIiwidXNlcl9pZCI6Mn0.ECZPXlaOF4zwE_1r435nyexXMrsxvlTZy89EYzeVVms"
+}
+```
+โดยเราจะใช้งาน refresh
+
+5. แก้ไขใน view เปลี่ยนไปใช้ `rest_framework_simplejwt.authentication.JWTAuthentication` แทน `rest_framework.authentication.TokenAuthentication` (หากไม่ได้ใส่ใน settings.py)
+
+```python
+...
+class SnippetList(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticatedOrReadOnly]
+...
+class SnippetDetail(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticatedOrReadOnly]
+...
+```
+
+6. ทดสอบโดยใช้ Postman อีกครั้ง คราวนี้แนบ JWT แทนที่ token เดิม **(ใช้ตัว "access")**
+
+## Customizing token claims
+
+ถ้าเราอยากจะเพิ่ม claims เข้าไปใน payload ของ JWT สามารถทำได้โดยการ extend class `TokenObtainPairSerializer`
+
+```python
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
+class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+
+        # Add custom claims
+        token['first_name'] = user.first_name
+        # ...
+
+        return token
+```
+
+และไปเพิ่ม setting `SIMPLE_JWT` ใน `settings.py`
+
+```python
+# Django project settings.py
+...
+
+SIMPLE_JWT = {
+  # It will work instead of the default serializer(TokenObtainPairSerializer).
+  "TOKEN_OBTAIN_SERIALIZER": "my_app.serializers.MyTokenObtainPairSerializer",
+  # ...
+}
+```
+
+### Use JWT
+- หากใช้งาน JWT ในการ Authentication ต้องใส่ `Bearer <access_token>`
+- หากต้องการ refresh access ให้ทำการใส่เข้า API `api/token/refresh` (หากตามตัวอย่าง)
+- หากต้องการ Generate JWT ให้ทำใส่ username, password เหมือนกับ Django

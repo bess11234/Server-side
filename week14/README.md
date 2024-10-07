@@ -385,7 +385,7 @@ class SnippetPermission(permissions.BasePermission):
             return request.user.has_perm("snippets.delete_snippet")
         return False
     
-    def has_obj_permission(self, request, view, obj):
+    def has_object_permission(self, request, view, obj):
         if request.method == "PUT":
             return request.user.has_perm("snippets.change_snippet") and obj.created_by == request.user
         elif request.method == "DELETE":
